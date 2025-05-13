@@ -1,123 +1,122 @@
-# 🧠 AI Analyst Agents — Multi-Agent Data Insight Engine
+# AI Data Analyzer API
 
-This is an experimental sample project that explores multi-agent LLM coordination for data analysis. It is designed to be a compelling, semi-practical demo that could evolve into a real product. Built with TypeScript and powered by the OpenAI API, the system interprets structured datasets through autonomous, specialized AI agents.
+A powerful API for analyzing structured data using AI agents. The system employs multiple specialized agents to provide comprehensive data analysis, insights, and interactive Q&A capabilities.
 
----
+## Features
 
-## ⚙️ Project Overview
+- **Multi-Agent Analysis System**
+  - Profiler Agent: Initial data analysis and profiling
+  - Detective Agent: Pattern discovery and insight generation
+  - Storyteller Agent: Narrative synthesis and report generation
+  - Chat Agent: Interactive Q&A and analysis refinement
 
-**Goal**: Given a user-uploaded CSV or dataset, route it through a set of intelligent AI agents that collaboratively analyze and narrate insights, with the ability to answer follow-up questions and refine analysis based on user needs.
+- **Data Analysis Capabilities**
+  - CSV file processing
+  - Column type detection
+  - Statistical analysis
+  - Pattern recognition
+  - Insight generation
+  - Narrative synthesis
 
-### Core Analysis Agents:
-- **📊 The Profiler**  
-  Parses and summarizes the dataset. Identifies column types, data distributions, and anomalies. Creates a comprehensive dataset profile.
+- **Interactive Q&A**
+  - Natural language questions about the data
+  - Context-aware responses
+  - Automatic reanalysis when needed
+  - Confidence scoring for answers
 
-- **🕵️ The Detective**  
-  Explores relationships, trends, and correlations across the data. Generates detailed insights with confidence levels and supporting evidence.
+## Getting Started
 
-- **📚 The Storyteller**  
-  Synthesizes the profile and insights into a clear, concise narrative that highlights key findings and patterns.
+### Prerequisites
 
-### Interactive Agent:
-- **💬 The Chat Agent**  
-  Serves as the user interface for the analysis system:
-  - Handles user questions about the analysis
-  - Evaluates answer quality and completeness
-  - Triggers targeted reanalysis when needed
-  - Coordinates with other agents to improve responses
-  - Maintains analysis state for follow-up questions
+- Node.js (v14 or higher)
+- npm or yarn
+- OpenAI API key
 
----
+### Installation
 
-## 💡 Key Features
-
-- **Multi-Agent Pipeline**: Coordinated analysis through specialized agents
-- **Interactive Q&A**: Ask questions about the analysis and get detailed answers
-- **Adaptive Analysis**: Agents can refine their analysis based on user questions
-- **Quality Control**: Built-in evaluation of answer quality and automatic improvement
-- **Structured Output**: Consistent JSON responses with proper error handling
-- **Type Safety**: Fully TypeScript-based with comprehensive type definitions
-
----
-
-## 🧱 Architecture
-
-```txt
-[User]                     <- Uploads CSV, asks questions
-      |
-[API Layer]               <- Express.js with TypeScript
-      |
-[Agent Pipeline]          <- Coordinated analysis flow
-  ├─ Core Analysis        <- Initial data processing
-  │  ├─ Profiler Agent    <- Dataset profiling
-  │  ├─ Detective Agent   <- Pattern discovery
-  │  └─ Storyteller Agent <- Narrative synthesis
-  │
-  └─ Interactive Layer    <- User interaction
-      └─ Chat Agent      <- Q&A and analysis refinement
-          |
-[OpenAI API]              <- GPT-3.5 Turbo for agent operations
-
-Analysis Flow:
-1. User uploads CSV
-2. Core agents process data (Profiler → Detective → Storyteller)
-3. User asks questions through Chat Agent
-4. Chat Agent evaluates answer quality
-5. If needed, triggers targeted reanalysis
-6. Improved answer is provided
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/ai-data-analyzer-api.git
+cd ai-data-analyzer-api
 ```
 
----
-
-## 🚀 Getting Started
-
-1. Clone the repository
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Create a `.env` file with your OpenAI API key:
-   ```
-   OPENAI_API_KEY=your_api_key_here
-   ```
+```bash
+npm install
+```
+
+3. Create a `.env` file in the root directory:
+```env
+PORT=3000
+OPENAI_API_KEY=your_api_key_here
+LOG_LEVEL=info
+UPLOAD_DIR=uploads
+MAX_FILE_SIZE=10485760
+```
+
 4. Start the development server:
-   ```bash
-   npm run dev
-   ```
+```bash
+npm run dev
+```
 
----
+## API Endpoints
 
-## 📝 API Endpoints
+### Analyze Data
+```http
+POST /api/analyze
+Content-Type: multipart/form-data
 
-- `POST /api/analyze` - Upload and analyze a CSV file
-- `POST /api/ask` - Ask questions about the analysis (handled by Chat Agent)
+file: <csv_file>
+```
 
----
+### Ask Questions
+```http
+POST /api/ask
+Content-Type: application/json
 
-## 🔒 Security
+{
+  "question": "What are the key trends in the data?"
+}
+```
 
-- Environment variables for sensitive data
-- Input validation and sanitization
-- Proper error handling without exposing internals
-- File upload validation and cleanup
+## Project Structure
 
----
+```
+src/
+├── agents/           # AI agent implementations
+├── middleware/       # Express middleware
+├── routes/          # API route handlers
+├── types/           # TypeScript type definitions
+├── utils/           # Utility functions
+└── index.ts         # Application entry point
+```
 
-## 🛠️ Tech Stack
+## Development
 
-- **Backend**: Node.js, Express, TypeScript
-- **AI**: OpenAI API (GPT-3.5 Turbo)
-- **Validation**: Zod
-- **Documentation**: Swagger/OpenAPI
-- **Logging**: Winston
+### Available Scripts
 
----
+- `npm run dev`: Start development server with hot reload
+- `npm run build`: Build for production
+- `npm start`: Start production server
+- `npm run lint`: Run ESLint
+- `npm run test`: Run tests
 
-## 💡 Why It's Interesting
+### Environment Variables
 
-- Uses autonomous agents with clear roles and task-based prompting
-- Explores prompt fidelity, agent chaining, and conversational memory
-- Powered by OpenAI API (GPT-3.5 / GPT-4)
-- Handles real data (CSV) and returns narrative + analysis
-- Fully TypeScript-based (backend and frontend)
-- Interactive Q&A with automatic quality improvement
+- `PORT`: Server port (default: 3000)
+- `OPENAI_API_KEY`: OpenAI API key
+- `LOG_LEVEL`: Logging level (default: info)
+- `UPLOAD_DIR`: File upload directory
+- `MAX_FILE_SIZE`: Maximum file size in bytes
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
