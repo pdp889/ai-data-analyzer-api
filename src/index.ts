@@ -19,6 +19,7 @@ const port = process.env.PORT || 3000;  // Use PORT from .env or default to 3000
 // Global middleware setup
 // These run on every request in the order they're defined
 app.use(cors());        // Enable CORS for all routes
+app.use(express.json()); // Parse JSON request bodies
 
 // API Documentation
 setupSwagger(app);

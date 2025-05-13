@@ -7,7 +7,10 @@ export const fileUploadSchema = z.object({
       message: 'Only CSV files are allowed'
     }),
     encoding: z.string(),
-    mimetype: z.literal('text/csv'),
+    mimetype: z.string().refine(mime => 
+      ['text/csv', 'application/csv', 'application/vnd.ms-excel', 'text/plain'].includes(mime), 
+      { message: 'Invalid file type. Only CSV files are allowed' }
+    ),
     size: z.number().max(10 * 1024 * 1024, {  // 10MB
       message: 'File size must be less than 10MB'
     }),
