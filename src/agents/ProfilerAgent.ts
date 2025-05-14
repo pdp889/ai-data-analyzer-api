@@ -1,221 +1,183 @@
-import { Agent, DatasetProfile, ColumnInfo } from '../types/agents';
+import { DatasetProfile, ColumnInfo } from '../types/data';
+import { ProfilerAgent as IProfilerAgent } from '../types/agents';
 import { OpenAI } from 'openai';
 import { logger } from '../utils/logger';
+import { handleOpenAIError } from '../middleware/errorHandler';
+import { PROFILER_AGENT_PROMPTS } from '../config/prompts';
 import { AppError } from '../middleware/errorHandler';
 
-export class ProfilerAgent implements Agent {
-  name = 'The Profiler';
-  role = 'Dataset Analysis and Profiling';
+export class ProfilerAgent implements IProfilerAgent {
+  name = 'The Profiler Agent';
+  role = 'Dataset Structure and Statistics Analysis';
   private openai: OpenAI;
-  private readonly MAX_CHUNK_SIZE = 100; // Reduced chunk size
-  private readonly MAX_SAMPLE_SIZE = 50; // Maximum number of rows to sample per chunk
-  private readonly MAX_TOKENS = 15000;
-  private readonly MAX_SYNTHESIS_CHUNKS = 5; // Maximum number of chunk analyses to synthesize at once
+  private readonly MAX_SAMPLE_SIZE = 100; // Maximum rows to send to GPT at once
+  private readonly MAX_ROWS = 3000; // Maximum total rows allowed
+  private readonly MAX_RETRIES = 2; // Maximum number of retries for failed requests
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
   }
 
-  private sampleData(data: any[]): any[] {
-    if (data.length <= this.MAX_SAMPLE_SIZE) {
-      return data;
-    }
-    
-    // Get first and last few rows
-    const firstRows = data.slice(0, Math.floor(this.MAX_SAMPLE_SIZE / 2));
-    const lastRows = data.slice(-Math.floor(this.MAX_SAMPLE_SIZE / 2));
-    
-    // Get random middle rows
-    const middleRows = data.slice(
-      Math.floor(this.MAX_SAMPLE_SIZE / 2),
-      -Math.floor(this.MAX_SAMPLE_SIZE / 2)
-    );
-    
-    const randomMiddleRows = middleRows
-      .sort(() => Math.random() - 0.5)
-      .slice(0, this.MAX_SAMPLE_SIZE - firstRows.length - lastRows.length);
-    
-    return [...firstRows, ...randomMiddleRows, ...lastRows];
-  }
-
-  private chunkData(data: any[]): any[][] {
-    const chunks: any[][] = [];
-    for (let i = 0; i < data.length; i += this.MAX_CHUNK_SIZE) {
-      const chunk = data.slice(i, i + this.MAX_CHUNK_SIZE);
-      // Sample the chunk to reduce token count
-      chunks.push(this.sampleData(chunk));
-    }
-    return chunks;
-  }
-
-  private async analyzeChunk(chunk: any[], chunkIndex: number, totalChunks: number, customPrompt?: string): Promise<string> {
-    // Create a more compact representation of the data
-    const dataSummary = {
-      sampleSize: chunk.length,
-      columns: Object.keys(chunk[0] || {}),
-      firstRow: chunk[0],
-      lastRow: chunk[chunk.length - 1],
-      sampleRows: chunk.slice(1, -1).slice(0, 3) // Include a few middle rows
-    };
-
-    const dataStr = JSON.stringify(dataSummary, null, 2);
-    
-    const response = await this.openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: customPrompt || `You are a data profiling expert. Analyze this chunk (${chunkIndex + 1}/${totalChunks}) of the dataset and provide detailed information about its structure, types, and potential issues.`
-        },
-        {
-          role: "user",
-          content: `Please analyze this chunk of the dataset and provide a detailed profile. This is chunk ${chunkIndex + 1} of ${totalChunks}:\n${dataStr}`
-        }
-      ],
-      temperature: 0.3,
-    });
-
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error('No content in OpenAI response');
-    return content;
-  }
-
-  private async synthesizeChunkAnalyses(analyses: string[], customPrompt?: string): Promise<string> {
-    // If we have too many analyses, synthesize them in groups
-    if (analyses.length > this.MAX_SYNTHESIS_CHUNKS) {
-      const groups: string[][] = [];
-      for (let i = 0; i < analyses.length; i += this.MAX_SYNTHESIS_CHUNKS) {
-        groups.push(analyses.slice(i, i + this.MAX_SYNTHESIS_CHUNKS));
-      }
-
-      // Synthesize each group
-      const groupSyntheses = await Promise.all(
-        groups.map((group, index) => 
-          this.synthesizeChunkAnalyses(group, customPrompt)
-        )
-      );
-
-      // Final synthesis of all group syntheses
-      return this.synthesizeChunkAnalyses(groupSyntheses, customPrompt);
-    }
-
-    // For smaller groups, do a single synthesis
-    const response = await this.openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: customPrompt || "You are a data profiling expert. Synthesize multiple chunk analyses into a comprehensive dataset profile."
-        },
-        {
-          role: "user",
-          content: `Please synthesize these ${analyses.length} chunk analyses into a comprehensive dataset profile:\n${JSON.stringify(analyses, null, 2)}`
-        }
-      ],
-      temperature: 0.3,
-    });
-
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error('No content in OpenAI response');
-    return content;
-  }
-
-  private inferColumnTypes(data: any[]): ColumnInfo[] {
-    if (!data.length) return [];
-    
-    const columns = Object.keys(data[0]);
-    return columns.map(name => {
-      const values = data.map(row => row[name]);
-      const uniqueValues = new Set(values).size;
-      const missingValues = values.filter(v => v === null || v === undefined || v === '').length;
-      
-      // Simple type inference
-      let type: ColumnInfo['type'] = 'text';
-      const firstValue = values[0];
-      
-      if (typeof firstValue === 'number') {
-        type = 'numeric';
-      } else if (firstValue instanceof Date || !isNaN(Date.parse(firstValue))) {
-        type = 'datetime';
-      } else if (uniqueValues < values.length * 0.5) { // If less than 50% unique values
-        type = 'categorical';
-      }
-      
-      return {
-        name,
-        type,
-        uniqueValues,
-        missingValues
-      };
-    });
+  async saveState(data: any[], customPrompt?: string): Promise<DatasetProfile> {
+    return this.analyze(data, customPrompt);
   }
 
   async analyze(data: any[], customPrompt?: string): Promise<DatasetProfile> {
     try {
       if (!data.length) {
-        throw new AppError(400, 'Empty dataset provided');
+        throw new Error('Empty dataset provided');
       }
 
-      // Split data into manageable chunks
-      const chunks = this.chunkData(data);
-      logger.info(`Split data into ${chunks.length} chunks for analysis`);
+      if (data.length > this.MAX_ROWS) {
+        throw new AppError(400, `Dataset too large. Maximum allowed rows is ${this.MAX_ROWS}, but received ${data.length} rows.`);
+      }
 
-      // Analyze each chunk
-      const chunkAnalyses = await Promise.all(
-        chunks.map((chunk, index) => {
-          logger.info(`Analyzing chunk ${index + 1}/${chunks.length}`);
-          return this.analyzeChunk(chunk, index, chunks.length, customPrompt);
-        })
+      // If dataset is small enough, analyze it directly
+      if (data.length <= this.MAX_SAMPLE_SIZE) {
+        const profile = await this.processDataWithRetry(data, customPrompt);
+        this.validate(profile);
+        return profile;
+      }
+
+      // For larger datasets, analyze in overlapping windows
+      const windows = this.createAnalysisWindows(data);
+      logger.info(`Analyzing ${windows.length} windows of data`);
+      
+      const results = await Promise.all(
+        windows.map(window => this.processDataWithRetry(window, customPrompt))
       );
 
-      // Synthesize all chunk analyses
-      logger.info('Synthesizing chunk analyses');
-      const finalAnalysis = await this.synthesizeChunkAnalyses(chunkAnalyses, customPrompt);
-      logger.info('Final analysis done');
-      logger.info(`Analysis length: ${finalAnalysis.length} characters`);
+      // Merge results from all windows
+      const profile = this.mergeChunkResults(results, data.length);
+      this.validate(profile);
 
-      // Infer column types
-      const columns = this.inferColumnTypes(data);
-      logger.info(`Inferred ${columns.length} columns:`, columns.map(c => `${c.name} (${c.type})`).join(', '));
-
-      // Return the structured profile
-      const profile: DatasetProfile = {
-        columns,
-        rowCount: data.length,
-        summary: finalAnalysis,
-        anomalies: []
-      };
-      
-      logger.info('Profile created successfully', {
-        rowCount: profile.rowCount,
-        columnCount: profile.columns.length,
-        summaryLength: profile.summary.length
-      });
-
+      logger.info(`Generated profile with ${profile.columns.length} columns`);
       return profile;
-    } catch (error: any) {
-      logger.error('Error in ProfilerAgent:', error);
-      
-      // Handle specific OpenAI API errors
-      if (error.message?.includes('insufficient_quota') || error.message?.includes('exceeded your current quota')) {
-        throw new AppError(429, 'OpenAI API quota exceeded. Please check your billing details and try again later.');
+    } catch (error: unknown) {
+      return handleOpenAIError(error);
+    }
+  }
+
+  private async processDataWithRetry(data: any[], customPrompt?: string, retryCount = 0): Promise<DatasetProfile> {
+    try {
+      return await this.processData(data, customPrompt);
+    } catch (error) {
+      if (retryCount < this.MAX_RETRIES) {
+        logger.warn(`Retry ${retryCount + 1}/${this.MAX_RETRIES} for data processing`);
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        return this.processDataWithRetry(data, customPrompt, retryCount + 1);
       }
-      
-      if (error.message?.includes('context_length_exceeded')) {
-        throw new AppError(400, 'Dataset is too large to analyze. Please try with a smaller dataset or contact support for assistance.');
-      }
-      
-      // Handle other OpenAI API errors
-      if (error.status === 429) {
-        throw new AppError(429, 'OpenAI API rate limit exceeded. Please try again later.');
-      }
-      
-      if (error.status === 401) {
-        throw new AppError(401, 'Invalid OpenAI API key. Please check your configuration.');
-      }
-      
-      // Re-throw other errors
       throw error;
     }
+  }
+
+  private createAnalysisWindows(data: any[]): any[][] {
+    const windows: any[][] = [];
+
+    for (let i = 0; i < data.length; i += this.MAX_SAMPLE_SIZE) {
+      const window = data.slice(i, i + this.MAX_SAMPLE_SIZE);
+      if (window.length > 0) {
+        windows.push(window);
+      }
+    }
+
+    return windows;
+  }
+
+  private async processData(data: any[], customPrompt?: string): Promise<DatasetProfile> {
+    const systemPrompt = customPrompt 
+      ? `${PROFILER_AGENT_PROMPTS.system}\n\nAdditional instructions: ${customPrompt}`
+      : PROFILER_AGENT_PROMPTS.system;
+
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: `Please analyze this data and provide a comprehensive profile in JSON format. This is a sample of ${data.length} rows:\n${JSON.stringify(data, null, 2)}`
+        }
+      ],
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+      max_tokens: 4000 // Increased token limit for response
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content in OpenAI response');
+    }
+
+    try {
+      const profile = JSON.parse(content);
+      this.validate(profile);
+      return profile;
+    } catch (error) {
+      logger.error('Failed to parse GPT response:', content);
+      throw new AppError(500, 'Invalid response format from GPT. Please try again.');
+    }
+  }
+
+  private mergeChunkResults(chunkResults: DatasetProfile[], totalRows: number): DatasetProfile {
+    if (chunkResults.length === 1) {
+      return chunkResults[0];
+    }
+
+    const mergedProfile: DatasetProfile = {
+      columns: [],
+      rowCount: totalRows, // Use actual total rows instead of summing window sizes
+      summary: chunkResults[0].summary // Keep summary from first chunk
+    };
+
+    // Merge column statistics
+    const columnMap = new Map<string, ColumnInfo>();
+    
+    for (const profile of chunkResults) {
+      for (const column of profile.columns) {
+        const existing = columnMap.get(column.name);
+        if (existing) {
+          // Merge statistics
+          existing.missingValues = (existing.missingValues || 0) + (column.missingValues || 0);
+        } else {
+          columnMap.set(column.name, { 
+            ...column,
+            missingValues: column.missingValues || 0
+          } as ColumnInfo);
+        }
+      }
+    }
+
+    mergedProfile.columns = Array.from(columnMap.values()).map(col => ({
+      name: col.name,
+      type: col.type,
+      missingValues: col.missingValues || 0
+    }));
+    return mergedProfile;
+  }
+
+  private validate(profile: DatasetProfile): void {
+    // Validate profile structure
+    if (!profile.columns || !Array.isArray(profile.columns)) {
+      throw new Error('Invalid response format: columns is not an array');
+    }
+
+    if (typeof profile.rowCount !== 'number') {
+      throw new Error('Invalid response format: rowCount is not a number');
+    }
+
+    if (typeof profile.summary !== 'string') {
+      throw new Error('Invalid response format: summary is not a string');
+    }
+
+    // Validate each column
+    profile.columns.forEach((column: any, index: number) => {
+      if (!column.name || !column.type || typeof column.missingValues !== 'number') {
+        throw new Error(`Invalid column at index ${index}: missing required fields`);
+      }
+    });
   }
 } 

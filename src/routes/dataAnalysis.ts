@@ -93,7 +93,7 @@ router.post('/analyze', upload.single('file'), async (req, res, next) => {
 
     // Initialize chat agent with the analysis results
     chatAgent = new ChatAgent(process.env.OPENAI_API_KEY);
-    await chatAgent.analyze(analysis.profile, analysis.insights, records);
+    await chatAgent.saveState(analysis.profile, analysis.insights, records);
 
     res.json({
       success: true,

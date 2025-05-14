@@ -1,9 +1,9 @@
 import { ProfilerAgent } from '../agents/ProfilerAgent';
 import { DetectiveAgent } from '../agents/DetectiveAgent';
 import { StorytellerAgent } from '../agents/StorytellerAgent';
-import { DatasetProfile, Insight } from '../types/agents';
+import { DatasetProfile, Insight } from '../types/data';
 import { logger } from './logger';
-import { AppError } from '../middleware/errorHandler';
+import { AppError, handleOpenAIError } from '../middleware/errorHandler';
 
 export interface AnalysisPrompts {
   profilerPrompt?: string;
@@ -46,40 +46,26 @@ export async function runAnalysisPipeline(
     
     // Step 2: Generate insights
     logger.info('Starting insight generation...');
-    const insights = await detectiveAgent.analyze(data, profile, prompts?.detectivePrompt);
-    if (!insights || !Array.isArray(insights) || insights.length === 0) {
+    const detectiveAnalysis = await detectiveAgent.analyze(data, profile, prompts?.detectivePrompt);
+    if (!detectiveAnalysis || !detectiveAnalysis.insights || detectiveAnalysis.insights.length === 0) {
       throw new AppError(500, 'Failed to generate insights');
     }
-    logger.info(`Generated ${insights.length} insights`);
+    logger.info(`Generated ${detectiveAnalysis.insights.length} insights`);
     
     // Step 3: Create narrative
     logger.info('Starting narrative synthesis...');
-    const narrative = await storytellerAgent.analyze(profile, insights, prompts?.storytellerPrompt);
-    if (!narrative) {
+    const storyAnalysis = await storytellerAgent.analyze(profile, detectiveAnalysis.insights, prompts?.storytellerPrompt);
+    if (!storyAnalysis || !storyAnalysis.narrative) {
       throw new AppError(500, 'Failed to generate narrative');
     }
     logger.info('Narrative synthesis completed');
 
-    return { profile, insights, narrative };
+    return { 
+      profile, 
+      insights: detectiveAnalysis.insights, 
+      narrative: storyAnalysis.narrative 
+    };
   } catch (error: any) {
-    logger.error('Error in analysis pipeline:', error);
-    
-    if (error instanceof AppError) {
-      throw error;
-    }
-    
-    if (error.message?.includes('insufficient_quota') || error.message?.includes('exceeded your current quota')) {
-      throw new AppError(429, 'OpenAI API quota exceeded. Please check your billing details and try again later.');
-    }
-    
-    if (error.status === 429) {
-      throw new AppError(429, 'OpenAI API rate limit exceeded. Please try again later.');
-    }
-    
-    if (error.status === 401) {
-      throw new AppError(401, 'Invalid OpenAI API key. Please check your configuration.');
-    }
-    
-    throw new AppError(500, 'An error occurred during the analysis pipeline');
+    handleOpenAIError(error);
   }
 } 

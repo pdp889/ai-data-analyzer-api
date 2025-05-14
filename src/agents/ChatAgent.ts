@@ -1,42 +1,38 @@
-import { Agent, DatasetProfile, Insight, AnswerEvaluation, AnalysisState } from '../types/agents';
+import { ChatAgent as IChatAgent } from '../types/agents';
 import { OpenAI } from 'openai';
 import { logger } from '../utils/logger';
-import { AppError } from '../middleware/errorHandler';
+import { AppError, handleOpenAIError } from '../middleware/errorHandler';
 import { runAnalysisPipeline, AnalysisPrompts } from '../utils/analysisPipeline';
 import { sanitizeText } from '../utils/textSanitizer';
-import { handleOpenAIError } from '../utils/errorHandler';
 import { CHAT_AGENT_PROMPTS } from '../config/prompts';
+import { DatasetProfile, Insight, AnalysisState } from '../types/data';
 
-export class ChatAgent implements Agent {
+interface AnswerEvaluation {
+  needsReanalysis: boolean;
+  reason?: string;
+  focusAreas?: string[];
+}
+
+export class ChatAgent implements IChatAgent{
   name = 'The Chat Agent';
   role = 'Interactive Q&A and Analysis Refinement';
   private openai: OpenAI;
   private analysisState: AnalysisState | null = null;
 
+
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
   }
 
-  async analyze(profile: DatasetProfile, insights: Insight[], originalData: any[]): Promise<void> {
-    if (!profile || !insights.length) {
-      throw new AppError(400, 'Invalid input: profile and insights are required');
-    }
-
-    this.analysisState = {
-      profile,
-      insights,
-      narrative: '', 
-      originalData
-    };
-
+  async saveState(profile: DatasetProfile, insights: Insight[], originalData: any[]): Promise<void> {
+    this.validateInput(profile, insights);
+    this.analysisState = { profile, insights, narrative: '', originalData };
     logger.info('Analysis state stored for Q&A');
   }
 
   async answerQuestion(question: string): Promise<string> {
     try {
-      if (!this.analysisState) {
-        throw new AppError(400, 'No analysis available. Please run an analysis first.');
-      }
+      this.validateState();
 
       // Generate initial answer
       const initialAnswer = await this.generateAnswer(question);
@@ -51,7 +47,7 @@ export class ChatAgent implements Agent {
         // Generate improved prompts and perform reanalysis
         const prompts = await this.generateAnalysisPrompts(question, evaluation);
         const newAnalysis = await runAnalysisPipeline(
-          this.analysisState.originalData,
+          this.analysisState!.originalData,
           process.env.OPENAI_API_KEY!,
           prompts
         );
@@ -59,7 +55,7 @@ export class ChatAgent implements Agent {
         // Update the analysis state with the new results
         this.analysisState = {
           ...newAnalysis,
-          originalData: this.analysisState.originalData
+          originalData: this.analysisState!.originalData
         };
         
         logger.info('Targeted reanalysis completed');
@@ -69,8 +65,8 @@ export class ChatAgent implements Agent {
       }
 
       return initialAnswer;
-    } catch (error) {
-      return handleOpenAIError(error);
+    } catch (error: unknown) {
+      handleOpenAIError(error);
     }
   }
 
@@ -98,17 +94,15 @@ export class ChatAgent implements Agent {
         response_format: { type: "json_object" }
       });
 
-      const content = response.choices[0].message.content;
-      if (!content) throw new Error('No content in OpenAI response');
-
-      const prompts = JSON.parse(content);
-      
-      if (!prompts.profilerPrompt || !prompts.detectivePrompt || !prompts.storytellerPrompt) {
-        throw new Error('Invalid prompts structure');
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in OpenAI response');
       }
 
+      const prompts = JSON.parse(content);
+      this.validatePrompts(prompts);
       return prompts;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Error generating analysis prompts:', error);
       return {
         profilerPrompt: CHAT_AGENT_PROMPTS.defaultPrompts.profiler(question),
@@ -136,13 +130,18 @@ export class ChatAgent implements Agent {
           }
         ],
         temperature: 0.3,
+        response_format: { type: "json_object" }
       });
 
-      const content = response.choices[0].message.content;
-      if (!content) throw new Error('No content in OpenAI response');
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No content in OpenAI response');
+      }
 
-      return JSON.parse(content);
-    } catch (error) {
+      const evaluation = JSON.parse(content);
+      this.validateEvaluation(evaluation);
+      return evaluation;
+    } catch (error: unknown) {
       logger.error('Error evaluating answer quality:', error);
       return { needsReanalysis: false, reason: 'Error evaluating answer quality' };
     }
@@ -172,18 +171,46 @@ export class ChatAgent implements Agent {
       }
 
       return sanitizeText(answer);
-    } catch (error) {
+    } catch (error: unknown) {
       return handleOpenAIError(error);
     }
   }
 
   private buildSystemPrompt(): string {
+    this.validateState();
+    const state = this.analysisState!;
+    return CHAT_AGENT_PROMPTS.system.base
+      .replace('{profile}', JSON.stringify(state.profile, null, 2))
+      .replace('{insights}', JSON.stringify(state.insights, null, 2));
+  }
+
+  private validateState(): void {
     if (!this.analysisState) {
       throw new AppError(400, 'No analysis available. Please run an analysis first.');
     }
+  }
 
-    return CHAT_AGENT_PROMPTS.system.base
-      .replace('{profile}', JSON.stringify(this.analysisState.profile, null, 2))
-      .replace('{insights}', JSON.stringify(this.analysisState.insights, null, 2));
+  private validateInput(profile: DatasetProfile, insights: Insight[]): void {
+    if (!profile || !insights.length) {
+      throw new AppError(400, 'Invalid input: profile and insights are required');
+    }
+  }
+
+  private validatePrompts(prompts: any): void {
+    if (!prompts.profilerPrompt || !prompts.detectivePrompt || !prompts.storytellerPrompt) {
+      throw new Error('Invalid prompts structure');
+    }
+  }
+
+  private validateEvaluation(evaluation: any): void {
+    if (typeof evaluation.needsReanalysis !== 'boolean') {
+      throw new Error('Invalid evaluation: needsReanalysis must be a boolean');
+    }
+    if (evaluation.reason && typeof evaluation.reason !== 'string') {
+      throw new Error('Invalid evaluation: reason must be a string');
+    }
+    if (evaluation.focusAreas && !Array.isArray(evaluation.focusAreas)) {
+      throw new Error('Invalid evaluation: focusAreas must be an array');
+    }
   }
 } 
