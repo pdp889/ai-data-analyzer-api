@@ -50,8 +50,6 @@ npm install
 PORT=3000
 OPENAI_API_KEY=your_api_key_here
 LOG_LEVEL=info
-UPLOAD_DIR=uploads
-MAX_FILE_SIZE=10485760
 ```
 
 4. Start the development server:
@@ -106,8 +104,6 @@ src/
 - `PORT`: Server port (default: 3000)
 - `OPENAI_API_KEY`: OpenAI API key
 - `LOG_LEVEL`: Logging level (default: info)
-- `UPLOAD_DIR`: File upload directory
-- `MAX_FILE_SIZE`: Maximum file size in bytes
 
 ## Contributing
 
