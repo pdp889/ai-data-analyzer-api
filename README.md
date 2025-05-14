@@ -1,118 +1,104 @@
 # AI Data Analyzer API
 
-A powerful API for analyzing structured data using AI agents. The system employs multiple specialized agents to provide comprehensive data analysis, insights, and interactive Q&A capabilities.
+A powerful API for analyzing datasets using AI agents. The system uses a pipeline of specialized agents to understand, analyze, and explain data patterns.
 
 ## Features
 
-- **Multi-Agent Analysis System**
-  - Profiler Agent: Initial data analysis and profiling
-  - Detective Agent: Pattern discovery and insight generation
-  - Storyteller Agent: Narrative synthesis and report generation
-  - Chat Agent: Interactive Q&A and analysis refinement
+- **Data Profiling**: Understand dataset structure and types
+- **Pattern Detection**: Identify correlations, trends, and anomalies
+- **Narrative Generation**: Create compelling data stories
+- **Interactive Q&A**: Ask questions about your data
+- **Quality Control**: Ensure accurate and complete answers
 
-- **Data Analysis Capabilities**
-  - CSV file processing
-  - Column type detection
-  - Statistical analysis
-  - Pattern recognition
-  - Insight generation
-  - Narrative synthesis
+## Architecture
 
-- **Interactive Q&A**
-  - Natural language questions about the data
-  - Context-aware responses
-  - Automatic reanalysis when needed
-  - Confidence scoring for answers
+The system uses a pipeline of specialized AI agents:
 
-## Getting Started
+### Profiler Agent
+- Analyzes dataset structure
+- Identifies column types
+- Processes data in efficient chunks
+- Generates basic dataset profile
 
-### Prerequisites
+### Detective Agent
+- Analyzes patterns and relationships
+- Identifies correlations and trends
+- Detects anomalies
+- Provides evidence-based insights
 
-- Node.js (v14 or higher)
-- npm or yarn
-- OpenAI API key
+### Storyteller Agent
+- Creates coherent narratives
+- Highlights key findings
+- Provides actionable conclusions
+- Synthesizes complex analysis
 
-### Installation
+### Chat Agent
+- Manages user interactions
+- Evaluates answer quality
+- Generates improved prompts
+- Maintains conversation context
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/ai-data-analyzer-api.git
-cd ai-data-analyzer-api
-```
+## Data Types
 
-2. Install dependencies:
-```bash
-npm install
-```
+The system uses several key data structures:
 
-3. Create a `.env` file in the root directory:
-```env
-PORT=3000
-OPENAI_API_KEY=your_api_key_here
-LOG_LEVEL=info
-```
+```typescript
+// Core data structures
+interface DatasetProfile {
+  columns: Column[];
+  rowCount: number;
+  summary: string;
+}
 
-4. Start the development server:
-```bash
-npm run dev
-```
+interface Column {
+  name: string;
+  type: string;
+  missingValues: number;
+}
 
-## API Endpoints
-
-### Analyze Data
-```http
-POST /api/analyze
-Content-Type: multipart/form-data
-
-file: <csv_file>
-```
-
-### Ask Questions
-```http
-POST /api/ask
-Content-Type: application/json
-
-{
-  "question": "What are the key trends in the data?"
+interface Insight {
+  type: 'correlation' | 'trend' | 'anomaly' | 'pattern';
+  description: string;
+  confidence: number;
+  supportingData: {
+    evidence: string;
+    statistics: string;
+  };
 }
 ```
 
-## Project Structure
+## Getting Started
 
-```
-src/
-├── agents/           # AI agent implementations
-├── middleware/       # Express middleware
-├── routes/          # API route handlers
-├── types/           # TypeScript type definitions
-├── utils/           # Utility functions
-└── index.ts         # Application entry point
-```
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables:
+   ```
+   OPENAI_API_KEY=your_api_key
+   PORT=3000
+   ```
+4. Start the server: `npm start`
+
+## API Endpoints
+
+- `POST /api/analyze`: Upload and analyze a dataset
+- `POST /api/chat`: Ask questions about your data
+- `GET /api/health`: Check API health
 
 ## Development
 
-### Available Scripts
-
-- `npm run dev`: Start development server with hot reload
-- `npm run build`: Build for production
-- `npm start`: Start production server
-- `npm run lint`: Run ESLint
-- `npm run test`: Run tests
-
-### Environment Variables
-
-- `PORT`: Server port (default: 3000)
-- `OPENAI_API_KEY`: OpenAI API key
-- `LOG_LEVEL`: Logging level (default: info)
+- Built with TypeScript
+- Uses OpenAI's GPT models
+- Implements efficient data processing
+- Includes comprehensive error handling
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see LICENSE file for details

@@ -1,5 +1,110 @@
 # Architecture Overview
 
+## Core Components
+
+### 1. Agent System
+The system uses a pipeline of specialized agents, each with a specific role:
+
+- **Profiler Agent**: Analyzes dataset structure and basic statistics
+  - Processes data in chunks of 100 rows
+  - Identifies column types and basic structure
+  - Generates initial dataset profile
+
+- **Detective Agent**: Generates insights and patterns
+  - Uses both profile and data samples
+  - Identifies correlations, trends, and anomalies
+  - Provides evidence-based insights
+
+- **Storyteller Agent**: Creates narrative from analysis
+  - Synthesizes insights into coherent story
+  - Highlights key findings
+  - Provides actionable conclusions
+
+- **Chat Agent**: Handles user interactions
+  - Manages conversation state
+  - Evaluates answer quality
+  - Generates improved prompts when needed
+
+### 2. Data Types
+
+The system uses several key data structures:
+
+```typescript
+// Core data structures
+interface DatasetProfile {
+  columns: Column[];
+  rowCount: number;
+  summary: string;
+}
+
+interface Column {
+  name: string;
+  type: string;
+  missingValues: number;
+}
+
+interface Insight {
+  type: 'correlation' | 'trend' | 'anomaly' | 'pattern';
+  description: string;
+  confidence: number;
+  supportingData: {
+    evidence: string;
+    statistics: string;
+  };
+}
+
+interface AnalysisResult {
+  profile: DatasetProfile;
+  insights: Insight[];
+  narrative: string;
+}
+```
+
+### 3. Prompt System
+
+Each agent has a specialized prompt system:
+
+- **Profiler Prompts**: Focus on data structure analysis
+- **Detective Prompts**: Guide insight generation with specific JSON structure
+- **Storyteller Prompts**: Direct narrative creation
+- **Chat Prompts**: Handle conversation flow and quality control
+
+## Data Flow
+
+1. **Data Ingestion**
+   - File upload and validation
+   - Initial data structure check
+
+2. **Analysis Pipeline**
+   - Profiler generates basic structure
+   - Detective analyzes patterns
+   - Storyteller creates narrative
+
+3. **Interaction Layer**
+   - Chat agent manages user queries
+   - Quality control evaluates responses
+   - Dynamic prompt adjustment
+
+## Error Handling
+
+- Centralized error handling through AppError
+- Specific error types for different scenarios
+- Graceful degradation and user feedback
+
+## Security
+
+- API key management
+- Input validation
+- Rate limiting
+- Error message sanitization
+
+## Performance Considerations
+
+- Chunked data processing
+- Efficient data structures
+- Caching where appropriate
+- Rate limiting for API calls
+
 ## System Components
 
 ### 1. API Layer
@@ -8,62 +113,10 @@
 - Basic error handling and logging
 - File upload handling with multer
 
-### 2. Agent System
-The system uses a pipeline of specialized AI agents:
-
-#### Profiler Agent
-- Initial data analysis
-- Column type detection
-- Basic statistics
-- Data quality assessment
-
-#### Detective Agent
-- Pattern recognition
-- Correlation analysis
-- Anomaly detection
-- Trend identification
-
-#### Storyteller Agent
-- Narrative synthesis
-- Key findings summary
-- Data story generation
-- Report formatting
-
-#### Chat Agent
-- Interactive Q&A
-- Context-aware responses
-- Analysis refinement
-- Confidence scoring
-
 ### 3. Data Processing
 - CSV parsing
 - In-memory data handling
 - Basic data validation
-
-### 4. Error Handling
-- Centralized error handling
-- Custom error types
-- Error logging
-- Client-friendly error messages
-
-## Data Flow
-
-1. **Data Upload**
-   - Client uploads CSV file
-   - File is parsed and validated
-   - Data is prepared for analysis
-
-2. **Analysis Pipeline**
-   - Profiler Agent analyzes data structure
-   - Detective Agent generates insights
-   - Storyteller Agent creates narrative
-   - Results are stored in memory
-
-3. **Q&A Processing**
-   - Chat Agent maintains analysis context
-   - Processes natural language questions
-   - Provides context-aware answers
-   - Updates analysis when needed
 
 ## Security Considerations
 
