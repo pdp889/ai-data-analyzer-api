@@ -18,10 +18,6 @@ export class ProfilerAgent implements IProfilerAgent {
     this.openai = new OpenAI({ apiKey });
   }
 
-  async saveState(data: any[], customPrompt?: string): Promise<DatasetProfile> {
-    return this.analyze(data, customPrompt);
-  }
-
   async analyze(data: any[], customPrompt?: string): Promise<DatasetProfile> {
     try {
       if (!data.length) {

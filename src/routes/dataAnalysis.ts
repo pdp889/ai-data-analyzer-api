@@ -8,12 +8,10 @@ import { ChatAgent } from '../agents/ChatAgent';
 import { runAnalysisPipeline } from '../utils/analysisPipeline';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
+import { AnalysisState } from '@/types/data';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
-
-// Store agent instances to maintain state between requests
-let chatAgent: ChatAgent | null = null;
 
 /**
  * @swagger
@@ -91,9 +89,15 @@ router.post('/analyze', upload.single('file'), async (req, res, next) => {
     // Run the analysis pipeline
     const analysis = await runAnalysisPipeline(records, process.env.OPENAI_API_KEY);
 
-    // Initialize chat agent with the analysis results
-    chatAgent = new ChatAgent(process.env.OPENAI_API_KEY);
-    await chatAgent.saveState(analysis.profile, analysis.insights, records);
+
+    //save state to session
+    const analysisState : AnalysisState = {
+      profile: analysis.profile,
+      insights: analysis.insights,
+      narrative: analysis.narrative,
+      originalData: records,
+    }
+    req.session.analysisState = analysisState;
 
     res.json({
       success: true,
@@ -148,21 +152,90 @@ router.post('/analyze', upload.single('file'), async (req, res, next) => {
 router.post('/ask', async (req, res, next) => {
   try {
     const { question } = req.body;
+    const existingAnalysis = req.session.analysisState;
 
     if (!question) {
       throw new AppError(400, 'Question is required');
     }
 
-    if (!chatAgent) {
-      throw new AppError(400, 'No analysis available. Please run an analysis first.');
+    if (!process.env.OPENAI_API_KEY) {
+      throw new AppError(500, 'OpenAI API key not configured');
     }
+    const chatAgent = new ChatAgent(process.env.OPENAI_API_KEY);
 
-    const answer = await chatAgent.answerQuestion(question);
+    if (!existingAnalysis) {
+      throw new AppError(400, 'No analysis has been performed yet for this session. Please analyze a file first.');
+    }
+    const answer = await chatAgent.answerQuestion(existingAnalysis, question);
 
     res.json({
       success: true,
       data: { answer }
     });
+  } catch (error: any) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /api/existing-analysis:
+ *   get:
+ *     tags: [Data Analysis]
+ *     summary: Get existing analysis data from session
+ *     description: Retrieves the analysis data (profile, insights, narrative) stored in the current user's session. Returns null if no analysis is found.
+ *     responses:
+ *       200:
+ *         description: Existing analysis data or null if not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     profile:
+ *                       type: object # Or $ref to your Profile schema
+ *                       description: Dataset profile and statistics.
+ *                     insights:
+ *                       type: array   # Or $ref to your Insights schema
+ *                       items:
+ *                         type: object
+ *                       description: Key insights derived from the data.
+ *                     narrative:
+ *                       type: string
+ *                       description: Human-readable synthesis of the analysis.
+ *                   example: 
+ *                     profile: { col1: "string", col2: "number" }
+ *                     insights: [ { type: "trend", description: "Sales increasing" } ]
+ *                     narrative: "Overall, the data shows an upward trend in sales."
+ *       500:
+ *         description: Internal server error.
+ */
+router.post('/existing-analysis', async (req, res, next) => {
+  try {
+    const existingAnalysis = req.session.analysisState;
+
+    if (existingAnalysis) {
+      res.json({
+        success: true,
+        data: {
+          profile: existingAnalysis.profile,
+          insights: existingAnalysis.insights,
+          narrative: existingAnalysis.narrative
+        }
+      });
+    } else {
+      res.json({
+        success: true,
+        data: null
+      });
+    }
   } catch (error: any) {
     next(error);
   }

@@ -17,29 +17,24 @@ export class ChatAgent implements IChatAgent{
   name = 'The Chat Agent';
   role = 'Interactive Q&A and Analysis Refinement';
   private openai: OpenAI;
-  private analysisState: AnalysisState | null = null;
 
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
   }
 
-  async saveState(profile: DatasetProfile, insights: Insight[], originalData: any[]): Promise<void> {
-    this.validateInput(profile, insights);
-    this.analysisState = { profile, insights, narrative: '', originalData };
-    logger.info('Analysis state stored for Q&A');
-  }
-
-  async answerQuestion(question: string): Promise<string> {
+  async answerQuestion(analysisState: AnalysisState, question: string): Promise<string> {
     try {
-      this.validateState();
+      this.validateState(analysisState);
 
       // Generate initial answer
-      const initialAnswer = await this.generateAnswer(question);
+      const initialAnswer = await this.generateAnswer(analysisState, question);
 
       // Evaluate answer quality
       const evaluation = await this.evaluateAnswerQuality(question, initialAnswer);
       
+      let currentState = analysisState;
+
       if (evaluation.needsReanalysis) {
         logger.info(`Answer needs improvement. Reason: ${evaluation.reason}`);
         logger.info('Focus areas for reanalysis:', evaluation.focusAreas);
@@ -47,26 +42,26 @@ export class ChatAgent implements IChatAgent{
         // Generate improved prompts and perform reanalysis
         const prompts = await this.generateAnalysisPrompts(question, evaluation);
         const newAnalysis = await runAnalysisPipeline(
-          this.analysisState!.originalData,
+          currentState.originalData,
           process.env.OPENAI_API_KEY!,
           prompts
         );
         
         // Update the analysis state with the new results
-        this.analysisState = {
+        currentState = {
           ...newAnalysis,
-          originalData: this.analysisState!.originalData
+          originalData: currentState.originalData
         };
         
         logger.info('Targeted reanalysis completed');
 
         // Generate final answer with the new analysis
-        return await this.generateAnswer(question);
+        return await this.generateAnswer(currentState, question);
       }
 
       return initialAnswer;
     } catch (error: unknown) {
-      handleOpenAIError(error);
+      handleOpenAIError(error); 
     }
   }
 
@@ -147,14 +142,14 @@ export class ChatAgent implements IChatAgent{
     }
   }
 
-  private async generateAnswer(question: string): Promise<string> {
+  private async generateAnswer(analysisState: AnalysisState, question: string): Promise<string> {
     try {
       const response = await this.openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: this.buildSystemPrompt()
+            content: this.buildSystemPrompt(analysisState)
           },
           {
             role: 'user',
@@ -176,21 +171,24 @@ export class ChatAgent implements IChatAgent{
     }
   }
 
-  private buildSystemPrompt(): string {
-    this.validateState();
-    const state = this.analysisState!;
+  private buildSystemPrompt(analysisState: AnalysisState): string {
+    this.validateState(analysisState);
     return CHAT_AGENT_PROMPTS.system.base
-      .replace('{profile}', JSON.stringify(state.profile, null, 2))
-      .replace('{insights}', JSON.stringify(state.insights, null, 2));
+      .replace('{profile}', JSON.stringify(analysisState.profile, null, 2))
+      .replace('{insights}', JSON.stringify(analysisState.insights, null, 2));
   }
 
-  private validateState(): void {
-    if (!this.analysisState) {
-      throw new AppError(400, 'No analysis available. Please run an analysis first.');
+  private validateState(analysisState: AnalysisState | null): void {
+    if (!analysisState) {
+      throw new AppError(400, 'No analysis available. Please provide a valid analysis state.');
+    }
+    // Add more specific checks if needed, e.g., ensuring profile and insights exist on the passed state
+    if (!analysisState.profile || !analysisState.insights) {
+        throw new AppError(400, 'Invalid analysis state: profile and insights are required.');
     }
   }
 
-  private validateInput(profile: DatasetProfile, insights: Insight[]): void {
+  public static validateInput(profile: DatasetProfile, insights: Insight[]): void {
     if (!profile || !insights.length) {
       throw new AppError(400, 'Invalid input: profile and insights are required');
     }

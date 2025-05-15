@@ -1,4 +1,4 @@
-import { DatasetProfile, Insight, DetectiveAnalysis, StoryAnalysis } from './data';
+import { DatasetProfile, Insight, DetectiveAnalysis, StoryAnalysis, AnalysisState } from './data';
 // Agent interfaces
 export interface Agent {
   name: string;
@@ -23,6 +23,5 @@ export interface StorytellerAgent extends AnaylyzerAgent {
 }
 
 export interface ChatAgent extends Agent {
-  saveState(profile: DatasetProfile, insights: Insight[], originalData: any[]): Promise<void>;
-  answerQuestion(question: string): Promise<string>;
+  answerQuestion(analysisState: AnalysisState, question: string): Promise<string>;
 }
