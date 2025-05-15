@@ -217,7 +217,7 @@ router.post('/ask', async (req, res, next) => {
  *       500:
  *         description: Internal server error.
  */
-router.post('/existing-analysis', async (req, res, next) => {
+router.get('/existing-analysis', async (req, res, next) => {
   try {
     const existingAnalysis = req.session.analysisState;
 
