@@ -1,8 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 
 export class AppError extends Error {
-  constructor(public statusCode: number, message: string) {
+  constructor(
+    public statusCode: number,
+    message: string
+  ) {
     super(message);
     this.name = 'AppError';
   }
@@ -11,14 +14,20 @@ export class AppError extends Error {
 export function handleOpenAIError(error: any): never {
   logger.error('OpenAI API Error:', error);
 
-  if (error.message?.includes('insufficient_quota') || error.message?.includes('exceeded your current quota')) {
-    throw new AppError(429, 'OpenAI API quota exceeded. Please check your billing details and try again later.');
+  if (
+    error.message?.includes('insufficient_quota') ||
+    error.message?.includes('exceeded your current quota')
+  ) {
+    throw new AppError(
+      429,
+      'OpenAI API quota exceeded. Please check your billing details and try again later.'
+    );
   }
-  
+
   if (error.status === 429) {
     throw new AppError(429, 'OpenAI API rate limit exceeded. Please try again later.');
   }
-  
+
   if (error.status === 401) {
     throw new AppError(401, 'Invalid OpenAI API key. Please check your configuration.');
   }
@@ -32,8 +41,10 @@ export function handleOpenAIError(error: any): never {
   }
 
   // Handle validation errors
-  if (error.message?.includes('Invalid insight structure') || 
-      error.message?.includes('Response must contain an array of insights')) {
+  if (
+    error.message?.includes('Invalid insight structure') ||
+    error.message?.includes('Response must contain an array of insights')
+  ) {
     throw new AppError(500, 'Invalid insight structure in response. Please try again.');
   }
 
@@ -51,12 +62,7 @@ export function handleOpenAIError(error: any): never {
   throw new AppError(500, 'An unexpected error occurred during analysis. Please try again.');
 }
 
-export const errorHandler = (
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const errorHandler = (err: Error, req: Request, res: Response) => {
   logger.error('Error:', err);
 
   if (err instanceof AppError) {
@@ -71,4 +77,4 @@ export const errorHandler = (
     status: 'error',
     message: 'Internal server error',
   });
-}; 
+};

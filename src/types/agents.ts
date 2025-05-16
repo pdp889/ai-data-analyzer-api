@@ -19,7 +19,11 @@ export interface DetectiveAgent extends AnaylyzerAgent {
 }
 
 export interface StorytellerAgent extends AnaylyzerAgent {
-  analyze(profile: DatasetProfile, insights: Insight[], customPrompt?: string): Promise<StoryAnalysis>;
+  analyze(
+    profile: DatasetProfile,
+    insights: Insight[],
+    customPrompt?: string
+  ): Promise<StoryAnalysis>;
 }
 
 export interface ChatAgent extends Agent {

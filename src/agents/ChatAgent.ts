@@ -13,11 +13,10 @@ interface AnswerEvaluation {
   focusAreas?: string[];
 }
 
-export class ChatAgent implements IChatAgent{
+export class ChatAgent implements IChatAgent {
   name = 'The Chat Agent';
   role = 'Interactive Q&A and Analysis Refinement';
   private openai: OpenAI;
-
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
@@ -32,13 +31,13 @@ export class ChatAgent implements IChatAgent{
 
       // Evaluate answer quality
       const evaluation = await this.evaluateAnswerQuality(question, initialAnswer);
-      
+
       let currentState = analysisState;
 
       if (evaluation.needsReanalysis) {
         logger.info(`Answer needs improvement. Reason: ${evaluation.reason}`);
         logger.info('Focus areas for reanalysis:', evaluation.focusAreas);
-        
+
         // Generate improved prompts and perform reanalysis
         const prompts = await this.generateAnalysisPrompts(question, evaluation);
         const newAnalysis = await runAnalysisPipeline(
@@ -46,13 +45,13 @@ export class ChatAgent implements IChatAgent{
           process.env.OPENAI_API_KEY!,
           prompts
         );
-        
+
         // Update the analysis state with the new results
         currentState = {
           ...newAnalysis,
-          originalData: currentState.originalData
+          originalData: currentState.originalData,
         };
-        
+
         logger.info('Targeted reanalysis completed');
 
         // Generate final answer with the new analysis
@@ -61,32 +60,32 @@ export class ChatAgent implements IChatAgent{
 
       return initialAnswer;
     } catch (error: unknown) {
-      handleOpenAIError(error); 
+      handleOpenAIError(error);
     }
   }
 
   private async generateAnalysisPrompts(
-    question: string, 
+    question: string,
     evaluation: AnswerEvaluation
   ): Promise<AnalysisPrompts> {
     try {
       const response = await this.openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: 'gpt-3.5-turbo',
         messages: [
           {
-            role: "system",
-            content: CHAT_AGENT_PROMPTS.system.promptGeneration
+            role: 'system',
+            content: CHAT_AGENT_PROMPTS.system.promptGeneration,
           },
           {
-            role: "user",
+            role: 'user',
             content: `Question: ${question}
             Evaluation: ${JSON.stringify(evaluation)}
             
-            Generate improved analysis prompts for each agent.`
-          }
+            Generate improved analysis prompts for each agent.`,
+          },
         ],
         temperature: 0.3,
-        response_format: { type: "json_object" }
+        response_format: { type: 'json_object' },
       });
 
       const content = response.choices[0]?.message?.content;
@@ -102,30 +101,27 @@ export class ChatAgent implements IChatAgent{
       return {
         profilerPrompt: CHAT_AGENT_PROMPTS.defaultPrompts.profiler(question),
         detectivePrompt: CHAT_AGENT_PROMPTS.defaultPrompts.detective(question),
-        storytellerPrompt: CHAT_AGENT_PROMPTS.defaultPrompts.storyteller(question)
+        storytellerPrompt: CHAT_AGENT_PROMPTS.defaultPrompts.storyteller(question),
       };
     }
   }
 
-  private async evaluateAnswerQuality(
-    question: string, 
-    answer: string
-  ): Promise<AnswerEvaluation> {
+  private async evaluateAnswerQuality(question: string, answer: string): Promise<AnswerEvaluation> {
     try {
       const response = await this.openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+        model: 'gpt-3.5-turbo',
         messages: [
           {
-            role: "system",
-            content: CHAT_AGENT_PROMPTS.system.qualityControl
+            role: 'system',
+            content: CHAT_AGENT_PROMPTS.system.qualityControl,
           },
           {
-            role: "user",
-            content: `Question: ${question}\nAnswer: ${answer}\n\nEvaluate if this answer needs reanalysis with a different approach.`
-          }
+            role: 'user',
+            content: `Question: ${question}\nAnswer: ${answer}\n\nEvaluate if this answer needs reanalysis with a different approach.`,
+          },
         ],
         temperature: 0.3,
-        response_format: { type: "json_object" }
+        response_format: { type: 'json_object' },
       });
 
       const content = response.choices[0]?.message?.content;
@@ -149,15 +145,15 @@ export class ChatAgent implements IChatAgent{
         messages: [
           {
             role: 'system',
-            content: this.buildSystemPrompt(analysisState)
+            content: this.buildSystemPrompt(analysisState),
           },
           {
             role: 'user',
-            content: question
-          }
+            content: question,
+          },
         ],
         temperature: 0.7,
-        max_tokens: 500
+        max_tokens: 500,
       });
 
       const answer = response.choices[0]?.message?.content;
@@ -184,7 +180,7 @@ export class ChatAgent implements IChatAgent{
     }
     // Add more specific checks if needed, e.g., ensuring profile and insights exist on the passed state
     if (!analysisState.profile || !analysisState.insights) {
-        throw new AppError(400, 'Invalid analysis state: profile and insights are required.');
+      throw new AppError(400, 'Invalid analysis state: profile and insights are required.');
     }
   }
 
@@ -211,4 +207,4 @@ export class ChatAgent implements IChatAgent{
       throw new Error('Invalid evaluation: focusAreas must be an array');
     }
   }
-} 
+}

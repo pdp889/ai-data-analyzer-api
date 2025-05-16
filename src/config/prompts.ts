@@ -49,19 +49,19 @@ Guidelines:
       "profilerPrompt": "string",
       "detectivePrompt": "string",
       "storytellerPrompt": "string"
-    }`
+    }`,
   },
 
   defaultPrompts: {
-    profiler: (question: string) => 
+    profiler: (question: string) =>
       `Analyze the dataset structure and statistics, focusing on aspects relevant to: ${question}`,
-    
-    detective: (question: string) => 
+
+    detective: (question: string) =>
       `Investigate patterns and relationships in the data that could help answer: ${question}`,
-    
-    storyteller: (question: string) => 
-      `Create a narrative that synthesizes the analysis findings to address: ${question}`
-  }
+
+    storyteller: (question: string) =>
+      `Create a narrative that synthesizes the analysis findings to address: ${question}`,
+  },
 } as const;
 
 export const PROFILER_AGENT_PROMPTS = {
@@ -78,7 +78,7 @@ export const PROFILER_AGENT_PROMPTS = {
     ],
     "rowCount": number,
     "summary": "string"
-  }`
+  }`,
 };
 
 export const DETECTIVE_AGENT_PROMPTS = {
@@ -105,7 +105,7 @@ export const DETECTIVE_AGENT_PROMPTS = {
   3. Identify anomalies by comparing data points to profile statistics
   4. Include specific evidence from the data sample to support each insight
   5. Please provide between 4 and 5 insights
-  6. Each insight should be actionable and backed by data`
+  6. Each insight should be actionable and backed by data`,
 };
 
 export const STORYTELLER_AGENT_PROMPTS = {
@@ -122,5 +122,5 @@ export const STORYTELLER_AGENT_PROMPTS = {
   1. Tell a coherent story about the data
   2. Incorporate the key insights
   3. Highlight the most important findings
-  4. Provide context and implications`
-}; 
+  4. Provide context and implications`,
+};

@@ -1,59 +1,71 @@
 # AI Data Analyzer API
 
-A powerful API for analyzing datasets using AI agents. The system uses a pipeline of specialized agents to understand, analyze, and explain data patterns.
+A powerful API for analyzing CSV datasets using AI agents. The system uses a pipeline of specialized agents to understand, analyze, and explain patterns in CSV data files.
 
 ## Features
 
-- **Data Profiling**: Understand dataset structure and types
-- **Pattern Detection**: Identify correlations, trends, and anomalies
-- **Narrative Generation**: Create compelling data stories
-- **Interactive Q&A**: Ask questions about your data
-- **Quality Control**: Ensure accurate and complete answers
+- **CSV Data Analysis**: Comprehensive analysis of CSV files
+- **Data Profiling**: Understand CSV structure and column types
+- **Pattern Detection**: Identify correlations, trends, and anomalies in CSV data
+- **Narrative Generation**: Create compelling data stories with key points and conclusions
+- **Interactive Q&A**: Ask questions about your analyzed CSV data
+- **Session Management**: Maintain analysis state for follow-up questions
 
 ## Architecture
 
-The system uses a pipeline of specialized AI agents:
+The system uses a pipeline of specialized AI agents to analyze CSV data:
 
 ### Profiler Agent
-- Analyzes dataset structure
+- Analyzes CSV structure
 - Identifies column types
-- Processes data in efficient chunks
-- Generates basic dataset profile
+- Provides data quality metrics
+- Generates dataset profile
 
 ### Detective Agent
-- Analyzes patterns and relationships
+- Analyzes patterns and relationships in CSV data
 - Identifies correlations and trends
-- Detects anomalies
-- Provides evidence-based insights
+- Generates insights with confidence levels
+- Provides supporting evidence and statistics
 
 ### Storyteller Agent
-- Creates coherent narratives
-- Highlights key findings
-- Provides actionable conclusions
+- Creates coherent narratives from CSV analysis
+- Generates key points
+- Provides conclusions
 - Synthesizes complex analysis
 
-### Chat Agent
-- Manages user interactions
-- Evaluates answer quality
-- Generates improved prompts
-- Maintains conversation context
+## API Endpoints
+
+### Data Analysis
+- `POST /api/analyze`: Upload and analyze a CSV file
+  - Accepts multipart/form-data with CSV file
+  - Only CSV files are supported
+  - Returns profile, insights, and narrative
+
+### Interactive Features
+- `POST /api/ask`: Ask questions about the analyzed CSV data
+  - Requires a question in the request body
+  - Returns AI-generated answer
+
+### Session Management
+- `GET /api/existing-analysis`: Get current analysis state
+- `DELETE /api/clear-session`: Clear current analysis session
 
 ## Data Types
 
-The system uses several key data structures:
+The system uses several key data structures for CSV analysis:
 
 ```typescript
 // Core data structures
 interface DatasetProfile {
-  columns: Column[];
+  columns: ColumnInfo[];
   rowCount: number;
   summary: string;
 }
 
-interface Column {
+interface ColumnInfo {
   name: string;
   type: string;
-  missingValues: number;
+  missingValues?: number;
 }
 
 interface Insight {
@@ -65,31 +77,48 @@ interface Insight {
     statistics: string;
   };
 }
+
+interface StoryAnalysis {
+  narrative: string;
+  keyPoints: string[];
+  conclusion: string;
+}
 ```
 
 ## Getting Started
 
 1. Clone the repository
 2. Install dependencies: `npm install`
-3. Set up environment variables:
+3. Copy environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+4. Configure environment variables:
    ```
    OPENAI_API_KEY=your_api_key
    PORT=3000
+   LOG_LEVEL=info
    ```
-4. Start the server: `npm start`
-
-## API Endpoints
-
-- `POST /api/analyze`: Upload and analyze a dataset
-- `POST /api/chat`: Ask questions about your data
-- `GET /api/health`: Check API health
+5. Start development server: `npm run dev`
+   - For production: `npm run build && npm start`
 
 ## Development
 
-- Built with TypeScript
-- Uses OpenAI's GPT models
-- Implements efficient data processing
-- Includes comprehensive error handling
+- Built with TypeScript and Express.js
+- Uses OpenAI's API for AI analysis
+- Implements Winston for logging
+- Includes Swagger/OpenAPI documentation
+- Features comprehensive error handling
+- CSV-only file support with validation
+
+## Available Scripts
+
+- `npm run dev`: Start development server with hot reload
+- `npm run build`: Build for production
+- `npm start`: Start production server
+- `npm run lint`: Run ESLint
+- `npm run format`: Format code with Prettier
+- `npm test`: Run tests
 
 ## Contributing
 

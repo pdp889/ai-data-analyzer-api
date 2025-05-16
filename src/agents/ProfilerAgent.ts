@@ -25,7 +25,10 @@ export class ProfilerAgent implements IProfilerAgent {
       }
 
       if (data.length > this.MAX_ROWS) {
-        throw new AppError(400, `Dataset too large. Maximum allowed rows is ${this.MAX_ROWS}, but received ${data.length} rows.`);
+        throw new AppError(
+          400,
+          `Dataset too large. Maximum allowed rows is ${this.MAX_ROWS}, but received ${data.length} rows.`
+        );
       }
 
       // If dataset is small enough, analyze it directly
@@ -38,9 +41,9 @@ export class ProfilerAgent implements IProfilerAgent {
       // For larger datasets, analyze in overlapping windows
       const windows = this.createAnalysisWindows(data);
       logger.info(`Analyzing ${windows.length} windows of data`);
-      
+
       const results = await Promise.all(
-        windows.map(window => this.processDataWithRetry(window, customPrompt))
+        windows.map((window) => this.processDataWithRetry(window, customPrompt))
       );
 
       // Merge results from all windows
@@ -54,14 +57,18 @@ export class ProfilerAgent implements IProfilerAgent {
     }
   }
 
-  private async processDataWithRetry(data: any[], customPrompt?: string, retryCount = 0): Promise<DatasetProfile> {
+  private async processDataWithRetry(
+    data: any[],
+    customPrompt?: string,
+    retryCount = 0
+  ): Promise<DatasetProfile> {
     try {
       return await this.processData(data, customPrompt);
     } catch (error) {
       if (retryCount < this.MAX_RETRIES) {
         logger.warn(`Retry ${retryCount + 1}/${this.MAX_RETRIES} for data processing`);
         // Exponential backoff
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
         return this.processDataWithRetry(data, customPrompt, retryCount + 1);
       }
       throw error;
@@ -82,7 +89,7 @@ export class ProfilerAgent implements IProfilerAgent {
   }
 
   private async processData(data: any[], customPrompt?: string): Promise<DatasetProfile> {
-    const systemPrompt = customPrompt 
+    const systemPrompt = customPrompt
       ? `${PROFILER_AGENT_PROMPTS.system}\n\nAdditional instructions: ${customPrompt}`
       : PROFILER_AGENT_PROMPTS.system;
 
@@ -91,16 +98,16 @@ export class ProfilerAgent implements IProfilerAgent {
       messages: [
         {
           role: 'system',
-          content: systemPrompt
+          content: systemPrompt,
         },
         {
           role: 'user',
-          content: `Please analyze this data and provide a comprehensive profile in JSON format. This is a sample of ${data.length} rows:\n${JSON.stringify(data, null, 2)}`
-        }
+          content: `Please analyze this data and provide a comprehensive profile in JSON format. This is a sample of ${data.length} rows:\n${JSON.stringify(data, null, 2)}`,
+        },
       ],
       temperature: 0.3,
-      response_format: { type: "json_object" },
-      max_tokens: 4000 // Increased token limit for response
+      response_format: { type: 'json_object' },
+      max_tokens: 4000, // Increased token limit for response
     });
 
     const content = response.choices[0]?.message?.content;
@@ -126,12 +133,12 @@ export class ProfilerAgent implements IProfilerAgent {
     const mergedProfile: DatasetProfile = {
       columns: [],
       rowCount: totalRows, // Use actual total rows instead of summing window sizes
-      summary: chunkResults[0].summary // Keep summary from first chunk
+      summary: chunkResults[0].summary, // Keep summary from first chunk
     };
 
     // Merge column statistics
     const columnMap = new Map<string, ColumnInfo>();
-    
+
     for (const profile of chunkResults) {
       for (const column of profile.columns) {
         const existing = columnMap.get(column.name);
@@ -139,18 +146,18 @@ export class ProfilerAgent implements IProfilerAgent {
           // Merge statistics
           existing.missingValues = (existing.missingValues || 0) + (column.missingValues || 0);
         } else {
-          columnMap.set(column.name, { 
+          columnMap.set(column.name, {
             ...column,
-            missingValues: column.missingValues || 0
+            missingValues: column.missingValues || 0,
           } as ColumnInfo);
         }
       }
     }
 
-    mergedProfile.columns = Array.from(columnMap.values()).map(col => ({
+    mergedProfile.columns = Array.from(columnMap.values()).map((col) => ({
       name: col.name,
       type: col.type,
-      missingValues: col.missingValues || 0
+      missingValues: col.missingValues || 0,
     }));
     return mergedProfile;
   }
@@ -176,4 +183,4 @@ export class ProfilerAgent implements IProfilerAgent {
       }
     });
   }
-} 
+}

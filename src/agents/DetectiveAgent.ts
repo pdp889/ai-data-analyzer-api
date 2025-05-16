@@ -15,7 +15,11 @@ export class DetectiveAgent implements IDetectiveAgent {
     this.openai = new OpenAI({ apiKey });
   }
 
-  async analyze(data: any[], profile: DatasetProfile, customPrompt?: string): Promise<DetectiveAnalysis> {
+  async analyze(
+    data: any[],
+    profile: DatasetProfile,
+    customPrompt?: string
+  ): Promise<DetectiveAnalysis> {
     try {
       const prompt = this.buildPrompt(data, profile, customPrompt);
       const response = await this.openai.chat.completions.create({
@@ -23,16 +27,16 @@ export class DetectiveAgent implements IDetectiveAgent {
         messages: [
           {
             role: 'system',
-            content: DETECTIVE_AGENT_PROMPTS.system
+            content: DETECTIVE_AGENT_PROMPTS.system,
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.3,
-        response_format: { type: "json_object" },
-        max_tokens: 4000
+        response_format: { type: 'json_object' },
+        max_tokens: 4000,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -65,7 +69,7 @@ export class DetectiveAgent implements IDetectiveAgent {
 
   private getRepresentativeSample(data: any[], size: number): any[] {
     if (data.length <= size) return data;
-    
+
     // Take evenly spaced samples to ensure coverage
     const step = Math.floor(data.length / size);
     const sample = [];
@@ -84,7 +88,7 @@ export class DetectiveAgent implements IDetectiveAgent {
 
       // Handle both direct array and object with insights property
       const insights = Array.isArray(parsed) ? parsed : parsed.insights;
-      
+
       if (!Array.isArray(insights)) {
         throw new Error('Response must contain an array of insights');
       }
@@ -105,4 +109,4 @@ export class DetectiveAgent implements IDetectiveAgent {
       throw new AppError(500, 'Invalid response format from OpenAI');
     }
   }
-} 
+}

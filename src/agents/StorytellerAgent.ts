@@ -1,4 +1,4 @@
-import {  StoryAnalysis, DatasetProfile, Insight } from '../types/data';
+import { StoryAnalysis, DatasetProfile, Insight } from '../types/data';
 import { StorytellerAgent as IStorytellerAgent } from '../types/agents';
 import { OpenAI } from 'openai';
 import { logger } from '../utils/logger';
@@ -14,7 +14,11 @@ export class StorytellerAgent implements IStorytellerAgent {
     this.openai = new OpenAI({ apiKey });
   }
 
-  async analyze(profile: DatasetProfile, insights: Insight[], customPrompt?: string): Promise<StoryAnalysis> {
+  async analyze(
+    profile: DatasetProfile,
+    insights: Insight[],
+    customPrompt?: string
+  ): Promise<StoryAnalysis> {
     try {
       const prompt = this.buildPrompt(profile, insights, customPrompt);
       const response = await this.openai.chat.completions.create({
@@ -22,16 +26,16 @@ export class StorytellerAgent implements IStorytellerAgent {
         messages: [
           {
             role: 'system',
-            content: STORYTELLER_AGENT_PROMPTS.system
+            content: STORYTELLER_AGENT_PROMPTS.system,
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         temperature: 0.3,
-        response_format: { type: "json_object" },
-        max_tokens: 4000
+        response_format: { type: 'json_object' },
+        max_tokens: 4000,
       });
 
       const content = response.choices[0]?.message?.content;
@@ -70,4 +74,4 @@ export class StorytellerAgent implements IStorytellerAgent {
       throw new AppError(500, 'Invalid response format from OpenAI');
     }
   }
-} 
+}

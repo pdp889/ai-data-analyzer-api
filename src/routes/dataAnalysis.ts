@@ -1,17 +1,24 @@
 import express from 'express';
 import multer from 'multer';
 import { parse } from 'csv-parse/sync';
-import { ProfilerAgent } from '../agents/ProfilerAgent';
-import { DetectiveAgent } from '../agents/DetectiveAgent';
-import { StorytellerAgent } from '../agents/StorytellerAgent';
 import { ChatAgent } from '../agents/ChatAgent';
 import { runAnalysisPipeline } from '../utils/analysisPipeline';
-import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
 import { AnalysisState } from '@/types/data';
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
+
+// Configure multer to only accept CSV files
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new AppError(400, 'Only CSV files are supported'));
+    }
+  }
+});
 
 /**
  * @swagger
@@ -19,7 +26,7 @@ const upload = multer({ storage: multer.memoryStorage() });
  *   post:
  *     tags: [Data Analysis]
  *     summary: Analyze a CSV file using multiple AI agents
- *     description: Upload a CSV file for comprehensive analysis using Profiler, Detective, and Storyteller agents
+ *     description: Upload a CSV file for comprehensive analysis using Profiler, Detective, and Storyteller agents. Only CSV files are supported.
  *     requestBody:
  *       required: true
  *       content:
@@ -30,7 +37,7 @@ const upload = multer({ storage: multer.memoryStorage() });
  *               file:
  *                 type: string
  *                 format: binary
- *                 description: CSV file to analyze
+ *                 description: CSV file to analyze (only CSV files are supported)
  *     responses:
  *       200:
  *         description: Analysis results
@@ -39,28 +46,34 @@ const upload = multer({ storage: multer.memoryStorage() });
  *             schema:
  *               type: object
  *               properties:
- *                 profile:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
  *                   type: object
- *                   description: Dataset profile and statistics
- *                 insights:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       type:
- *                         type: string
- *                         enum: [correlation, trend, anomaly, pattern]
- *                       description:
- *                         type: string
- *                       confidence:
- *                         type: number
- *                       supportingData:
+ *                   properties:
+ *                     profile:
+ *                       type: object
+ *                       description: Dataset profile and statistics
+ *                     insights:
+ *                       type: array
+ *                       items:
  *                         type: object
- *                 narrative:
- *                   type: string
- *                   description: Human-readable synthesis of the analysis
+ *                         properties:
+ *                           type:
+ *                             type: string
+ *                             enum: [correlation, trend, anomaly, pattern]
+ *                           description:
+ *                             type: string
+ *                           confidence:
+ *                             type: number
+ *                           supportingData:
+ *                             type: object
+ *                     narrative:
+ *                       type: string
+ *                       description: Human-readable synthesis of the analysis
  *       400:
- *         description: Invalid input or missing file
+ *         description: Invalid input, missing file, or non-CSV file
  *       401:
  *         description: Invalid OpenAI API key
  *       429:
@@ -79,7 +92,7 @@ router.post('/analyze', upload.single('file'), async (req, res, next) => {
     // Parse CSV data
     const records = parse(req.file.buffer.toString(), {
       columns: true,
-      skip_empty_lines: true
+      skip_empty_lines: true,
     });
 
     if (!records.length) {
@@ -89,14 +102,13 @@ router.post('/analyze', upload.single('file'), async (req, res, next) => {
     // Run the analysis pipeline
     const analysis = await runAnalysisPipeline(records, process.env.OPENAI_API_KEY);
 
-
     //save state to session
-    const analysisState : AnalysisState = {
+    const analysisState: AnalysisState = {
       profile: analysis.profile,
       insights: analysis.insights,
       narrative: analysis.narrative,
       originalData: records,
-    }
+    };
     req.session.analysisState = analysisState;
 
     res.json({
@@ -104,8 +116,8 @@ router.post('/analyze', upload.single('file'), async (req, res, next) => {
       data: {
         profile: analysis.profile,
         insights: analysis.insights,
-        narrative: analysis.narrative
-      }
+        narrative: analysis.narrative,
+      },
     });
   } catch (error: any) {
     next(error);
@@ -164,13 +176,16 @@ router.post('/ask', async (req, res, next) => {
     const chatAgent = new ChatAgent(process.env.OPENAI_API_KEY);
 
     if (!existingAnalysis) {
-      throw new AppError(400, 'No analysis has been performed yet for this session. Please analyze a file first.');
+      throw new AppError(
+        400,
+        'No analysis has been performed yet for this session. Please analyze a file first.'
+      );
     }
     const answer = await chatAgent.answerQuestion(existingAnalysis, question);
 
     res.json({
       success: true,
-      data: { answer }
+      data: { answer },
     });
   } catch (error: any) {
     next(error);
@@ -210,7 +225,7 @@ router.post('/ask', async (req, res, next) => {
  *                     narrative:
  *                       type: string
  *                       description: Human-readable synthesis of the analysis.
- *                   example: 
+ *                   example:
  *                     profile: { col1: "string", col2: "number" }
  *                     insights: [ { type: "trend", description: "Sales increasing" } ]
  *                     narrative: "Overall, the data shows an upward trend in sales."
@@ -227,13 +242,13 @@ router.get('/existing-analysis', async (req, res, next) => {
         data: {
           profile: existingAnalysis.profile,
           insights: existingAnalysis.insights,
-          narrative: existingAnalysis.narrative
-        }
+          narrative: existingAnalysis.narrative,
+        },
       });
     } else {
       res.json({
         success: true,
-        data: null
+        data: null,
       });
     }
   } catch (error: any) {
@@ -241,4 +256,51 @@ router.get('/existing-analysis', async (req, res, next) => {
   }
 });
 
-export const dataAnalysisRouter = router; 
+/**
+ * @swagger
+ * /api/clear-session:
+ *   delete:
+ *     tags: [Data Analysis]
+ *     summary: Clear the current analysis session
+ *     description: Removes all analysis data stored in the current user's session, including profile, insights, narrative, and original data
+ *     responses:
+ *       200:
+ *         description: Session cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Analysis session cleared successfully"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to clear session"
+ */
+router.delete('/clear-session', async (req, res, next) => {
+  try {
+    req.session.analysisState = undefined;
+    res.json({
+      success: true,
+      message: 'Analysis session cleared successfully',
+    });
+  } catch (error: any) {
+    next(error);
+  }
+});
+
+export const dataAnalysisRouter = router;

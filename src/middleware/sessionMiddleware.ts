@@ -11,7 +11,9 @@ declare module 'express-session' {
 
 export const configureSession = (app: Express): void => {
   const isProduction = process.env.NODE_ENV === 'production';
-  console.log(`Session Middleware: Configuring for NODE_ENV='${process.env.NODE_ENV}', isProduction=${isProduction}`);
+  console.log(
+    `Session Middleware: Configuring for NODE_ENV='${process.env.NODE_ENV}', isProduction=${isProduction}`
+  );
 
   app.use(
     session({
@@ -23,9 +25,9 @@ export const configureSession = (app: Express): void => {
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
         path: '/', // Explicitly set path, good practice
-        sameSite: isProduction ? 'none' : 'lax' // 'none' for HTTPS prod, 'lax' for HTTP dev
+        sameSite: isProduction ? 'none' : 'lax', // 'none' for HTTPS prod, 'lax' for HTTP dev
       },
     })
   );
   console.log('Session middleware configured with environment-specific cookie settings.');
-}; 
+};

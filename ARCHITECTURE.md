@@ -11,17 +11,17 @@ The AI Data Analyzer API is a multi-agent system designed to analyze and extract
   - Handles file uploads via Multer
   - Manages CSV parsing
   - Coordinates agent execution
-  - Returns structured analysis results
+  - Manages session state for analysis data
+  - Provides endpoints for analysis, Q&A, and session management
 
 ### 2. Agent System (`src/agents/`)
-The system employs four specialized AI agents that work in sequence:
+The system employs three specialized AI agents that work in sequence:
 
 #### Profiler Agent
 - **Role**: Initial data analysis and profiling
 - **Responsibilities**:
   - Analyzes dataset structure
   - Identifies column types
-  - Detects anomalies
   - Provides data quality metrics
 - **Implementation**: `ProfilerAgent.ts`
 - **Output**: `DatasetProfile` with column information and summary
@@ -31,31 +31,18 @@ The system employs four specialized AI agents that work in sequence:
 - **Responsibilities**:
   - Identifies correlations between columns
   - Discovers trends and patterns
-  - Performs statistical analysis
   - Generates structured insights with confidence levels
 - **Implementation**: `DetectiveAgent.ts`
-- **Output**: Array of `Insight` objects with type, description, and confidence
+- **Output**: Array of `Insight` objects with type, description, confidence, and supporting data
 
 #### Storyteller Agent
 - **Role**: Narrative synthesis and report generation
 - **Responsibilities**:
   - Combines profile and insights into a coherent narrative
-  - Generates human-readable summaries
-  - Creates executive reports
-  - Focuses on business implications
+  - Generates key points and conclusions
+  - Creates executive summaries
 - **Implementation**: `StorytellerAgent.ts`
-- **Output**: Narrative string synthesizing all findings
-
-#### Chat Agent
-- **Role**: Interactive Q&A and analysis refinement
-- **Responsibilities**:
-  - Handles user questions about the analysis
-  - Evaluates answer quality and completeness
-  - Triggers targeted reanalysis when needed
-  - Coordinates with other agents to improve responses
-  - Maintains analysis state for follow-up questions
-- **Implementation**: `ChatAgent.ts`
-- **Output**: Detailed answers to user questions
+- **Output**: `StoryAnalysis` with narrative, key points, and conclusion
 
 ### 3. Type System (`src/types/`)
 Core interfaces defining the system's data structures:
@@ -63,54 +50,50 @@ Core interfaces defining the system's data structures:
   - Column information
   - Row count
   - Summary
-  - Anomalies
 - `ColumnInfo`: Column-specific information
   - Name
-  - Type (numeric, categorical, datetime, text)
-  - Unique values count
+  - Type
   - Missing values count
 - `Insight`: Individual data insights
   - Type (correlation, trend, anomaly, pattern)
   - Description
   - Confidence level
-  - Supporting evidence
+  - Supporting data (evidence and statistics)
 - `AnalysisResult`: Combined analysis output
   - Profile
   - Insights
   - Narrative
-- `AnalysisPrompts`: Custom prompts for targeted analysis
-  - Profiler prompt
-  - Detective prompt
-  - Storyteller prompt
+- `AnalysisState`: Extended analysis result
+  - Includes original data
+  - Used for session management
+- `StoryAnalysis`: Narrative output
+  - Narrative text
+  - Key points
+  - Conclusion
 
 ### 4. Middleware (`src/middleware/`)
 - **errorHandler.ts**: Centralized error handling
-  - Custom error types
+  - Custom `AppError` class
+  - OpenAI API error handling
   - Consistent error responses
   - Error logging
-- **fileValidation.ts**: File upload validation
-  - File type checking
-  - Size validation
-  - Cleanup handling
 
 ### 5. Utilities (`src/utils/`)
 - **logger.ts**: Winston-based logging system
   - Console and file logging
   - Error tracking
   - Performance monitoring
-- **swagger.ts**: API documentation
-  - OpenAPI specification
-  - Swagger UI setup
 - **analysisPipeline.ts**: Analysis coordination
   - Agent pipeline execution
-  - State management
   - Error handling
+  - Custom prompt support
+  - Logging of analysis progress
 
 ## Data Flow
 
-1. **File Upload and Parsing**
+1. **File Upload and Analysis**
    ```
-   Client -> API -> Multer -> CSV Parser -> Data Structure
+   Client -> API -> CSV Parser -> Analysis Pipeline
    ```
 
 2. **Analysis Pipeline**
@@ -120,10 +103,10 @@ Core interfaces defining the system's data structures:
    (Profile + Insights) -> Storyteller -> Narrative
    ```
 
-3. **Interactive Q&A**
+3. **Session Management**
    ```
-   User Question -> Chat Agent -> Answer Evaluation
-   If needed: Trigger Reanalysis -> Update Analysis -> Improved Answer
+   Analysis Results -> Session Storage
+   Session Data -> Q&A Endpoint
    ```
 
 4. **Response Generation**
@@ -136,7 +119,7 @@ Core interfaces defining the system's data structures:
 - **Runtime**: Node.js
 - **Language**: TypeScript
 - **Framework**: Express.js
-- **AI Integration**: OpenAI API (GPT-3.5-turbo)
+- **AI Integration**: OpenAI API
 - **File Processing**: csv-parse
 - **Logging**: Winston
 - **Type Safety**: TypeScript
@@ -148,16 +131,13 @@ Environment variables (`.env`):
 - `PORT`: Server port
 - `OPENAI_API_KEY`: OpenAI API credentials
 - `LOG_LEVEL`: Logging verbosity
-- `UPLOAD_DIR`: File upload directory
-- `MAX_FILE_SIZE`: Upload size limit
 
 ## Security Considerations
 
 1. **File Upload**
    - Size limits
    - Type validation
-   - Secure storage
-   - Automatic cleanup
+   - Memory storage
 
 2. **API Security**
    - CORS configuration
@@ -165,7 +145,7 @@ Environment variables (`.env`):
    - Error handling
 
 3. **Data Privacy**
-   - Temporary file storage
+   - Session-based storage
    - Secure API key handling
    - Data sanitization
 
@@ -184,7 +164,7 @@ The system implements a robust error handling strategy:
    - Add agent-specific prompts configuration
    - Implement agent communication patterns
    - Add agent performance metrics
-   - Enhance Chat Agent's reanalysis capabilities
+   - Enhance analysis capabilities
 
 2. **Performance**
    - Implement caching

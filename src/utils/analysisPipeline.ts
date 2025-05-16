@@ -43,29 +43,37 @@ export async function runAnalysisPipeline(
       throw new AppError(500, 'Failed to generate dataset profile');
     }
     logger.info('Dataset profiling completed');
-    
+
     // Step 2: Generate insights
     logger.info('Starting insight generation...');
     const detectiveAnalysis = await detectiveAgent.analyze(data, profile, prompts?.detectivePrompt);
-    if (!detectiveAnalysis || !detectiveAnalysis.insights || detectiveAnalysis.insights.length === 0) {
+    if (
+      !detectiveAnalysis ||
+      !detectiveAnalysis.insights ||
+      detectiveAnalysis.insights.length === 0
+    ) {
       throw new AppError(500, 'Failed to generate insights');
     }
     logger.info(`Generated ${detectiveAnalysis.insights.length} insights`);
-    
+
     // Step 3: Create narrative
     logger.info('Starting narrative synthesis...');
-    const storyAnalysis = await storytellerAgent.analyze(profile, detectiveAnalysis.insights, prompts?.storytellerPrompt);
+    const storyAnalysis = await storytellerAgent.analyze(
+      profile,
+      detectiveAnalysis.insights,
+      prompts?.storytellerPrompt
+    );
     if (!storyAnalysis || !storyAnalysis.narrative) {
       throw new AppError(500, 'Failed to generate narrative');
     }
     logger.info('Narrative synthesis completed');
 
-    return { 
-      profile, 
-      insights: detectiveAnalysis.insights, 
-      narrative: storyAnalysis.narrative 
+    return {
+      profile,
+      insights: detectiveAnalysis.insights,
+      narrative: storyAnalysis.narrative,
     };
   } catch (error: any) {
     handleOpenAIError(error);
   }
-} 
+}
