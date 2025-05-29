@@ -70,7 +70,7 @@ export class ChatAgent implements IChatAgent {
   ): Promise<AnalysisPrompts> {
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4.1-nano',
         messages: [
           {
             role: 'system',
@@ -109,7 +109,7 @@ export class ChatAgent implements IChatAgent {
   private async evaluateAnswerQuality(question: string, answer: string): Promise<AnswerEvaluation> {
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4.1-nano',
         messages: [
           {
             role: 'system',
@@ -141,7 +141,7 @@ export class ChatAgent implements IChatAgent {
   private async generateAnswer(analysisState: AnalysisState, question: string): Promise<string> {
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4.1-nano',
         messages: [
           {
             role: 'system',
@@ -153,7 +153,7 @@ export class ChatAgent implements IChatAgent {
           },
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 32000,
       });
 
       const answer = response.choices[0]?.message?.content;

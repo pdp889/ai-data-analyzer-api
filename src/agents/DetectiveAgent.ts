@@ -9,7 +9,8 @@ export class DetectiveAgent implements IDetectiveAgent {
   name = 'Detective';
   role = 'Insight Generator';
   private openai: OpenAI;
-  private readonly MAX_SAMPLE_SIZE = 20; // Increased sample size for better pattern recognition
+  private readonly MAX_SAMPLE_SIZE = 10000;
+  private readonly CHUNK_THRESHOLD = 20000;
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
@@ -21,34 +22,58 @@ export class DetectiveAgent implements IDetectiveAgent {
     customPrompt?: string
   ): Promise<DetectiveAnalysis> {
     try {
-      const prompt = this.buildPrompt(data, profile, customPrompt);
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: DETECTIVE_AGENT_PROMPTS.system,
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.3,
-        response_format: { type: 'json_object' },
-        max_tokens: 4000,
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new AppError(500, 'No response received from OpenAI');
+      // If dataset is small enough, analyze it directly
+      if (data.length <= this.CHUNK_THRESHOLD) {
+        logger.info(`Analyzing ${data.length} rows in a single request`);
+        const prompt = this.buildPrompt(data, profile, customPrompt);
+        return await this.processData(prompt);
       }
 
-      const insights = this.parseResponse(content);
-      return { insights };
+      // For larger datasets, analyze in chunks
+      logger.info(`Dataset size (${data.length} rows) exceeds threshold, analyzing in chunks`);
+      const windows = this.createAnalysisWindows(data);
+      logger.info(`Analyzing ${windows.length} windows of data`);
+
+      const results = await Promise.all(
+        windows.map((window) => {
+          const prompt = this.buildPrompt(window, profile, customPrompt);
+          return this.processData(prompt);
+        })
+      );
+
+      // Merge insights from all windows
+      const mergedInsights = this.mergeInsights(results);
+      return { insights: mergedInsights };
     } catch (error: any) {
       handleOpenAIError(error);
     }
+  }
+
+  private async processData(prompt: string): Promise<DetectiveAnalysis> {
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4.1-nano',
+      messages: [
+        {
+          role: 'system',
+          content: DETECTIVE_AGENT_PROMPTS.system,
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+      max_tokens: 32000,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new AppError(500, 'No response received from OpenAI');
+    }
+
+    const insights = this.parseResponse(content);
+    return { insights };
   }
 
   private buildPrompt(data: any[], profile: DatasetProfile, customPrompt?: string): string {
@@ -77,6 +102,32 @@ export class DetectiveAgent implements IDetectiveAgent {
       sample.push(data[i * step]);
     }
     return sample;
+  }
+
+  private createAnalysisWindows(data: any[]): any[][] {
+    const windows: any[][] = [];
+    const windowSize = Math.ceil(data.length / Math.ceil(data.length / this.MAX_SAMPLE_SIZE));
+
+    for (let i = 0; i < data.length; i += windowSize) {
+      const window = data.slice(i, i + windowSize);
+      if (window.length > 0) {
+        windows.push(window);
+      }
+    }
+
+    return windows;
+  }
+
+  private mergeInsights(results: DetectiveAnalysis[]): any[] {
+    const allInsights = results.flatMap((result) => result.insights);
+    
+    // Remove duplicate insights based on description
+    const uniqueInsights = Array.from(
+      new Map(allInsights.map((insight) => [insight.description, insight])).values()
+    );
+
+    // Sort by confidence
+    return uniqueInsights.sort((a, b) => b.confidence - a.confidence);
   }
 
   private parseResponse(response: string): any[] {

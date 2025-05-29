@@ -10,9 +10,10 @@ export class ProfilerAgent implements IProfilerAgent {
   name = 'The Profiler Agent';
   role = 'Dataset Structure and Statistics Analysis';
   private openai: OpenAI;
-  private readonly MAX_SAMPLE_SIZE = 100; // Maximum rows to send to GPT at once
-  private readonly MAX_ROWS = 3000; // Maximum total rows allowed
-  private readonly MAX_RETRIES = 2; // Maximum number of retries for failed requests
+  private readonly MAX_SAMPLE_SIZE = 10000; // Increased to 10k rows for the new model
+  private readonly MAX_ROWS = 100000; // Increased to 100k rows total
+  private readonly MAX_RETRIES = 2;
+  private readonly CHUNK_THRESHOLD = 50000; // Only chunk if we have more than 50k rows
 
   constructor(apiKey: string) {
     this.openai = new OpenAI({ apiKey });
@@ -32,13 +33,15 @@ export class ProfilerAgent implements IProfilerAgent {
       }
 
       // If dataset is small enough, analyze it directly
-      if (data.length <= this.MAX_SAMPLE_SIZE) {
+      if (data.length <= this.CHUNK_THRESHOLD) {
+        logger.info(`Analyzing ${data.length} rows in a single request`);
         const profile = await this.processDataWithRetry(data, customPrompt);
         this.validate(profile);
         return profile;
       }
 
-      // For larger datasets, analyze in overlapping windows
+      // For very large datasets, analyze in chunks
+      logger.info(`Dataset size (${data.length} rows) exceeds threshold, analyzing in chunks`);
       const windows = this.createAnalysisWindows(data);
       logger.info(`Analyzing ${windows.length} windows of data`);
 
@@ -77,9 +80,10 @@ export class ProfilerAgent implements IProfilerAgent {
 
   private createAnalysisWindows(data: any[]): any[][] {
     const windows: any[][] = [];
+    const windowSize = Math.ceil(data.length / Math.ceil(data.length / this.MAX_SAMPLE_SIZE));
 
-    for (let i = 0; i < data.length; i += this.MAX_SAMPLE_SIZE) {
-      const window = data.slice(i, i + this.MAX_SAMPLE_SIZE);
+    for (let i = 0; i < data.length; i += windowSize) {
+      const window = data.slice(i, i + windowSize);
       if (window.length > 0) {
         windows.push(window);
       }
@@ -94,7 +98,7 @@ export class ProfilerAgent implements IProfilerAgent {
       : PROFILER_AGENT_PROMPTS.system;
 
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4.1-nano',
       messages: [
         {
           role: 'system',
@@ -107,7 +111,7 @@ export class ProfilerAgent implements IProfilerAgent {
       ],
       temperature: 0.3,
       response_format: { type: 'json_object' },
-      max_tokens: 4000, // Increased token limit for response
+      max_tokens: 32000, // Increased token limit for the new model
     });
 
     const content = response.choices[0]?.message?.content;

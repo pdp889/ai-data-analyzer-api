@@ -22,7 +22,7 @@ export class StorytellerAgent implements IStorytellerAgent {
     try {
       const prompt = this.buildPrompt(profile, insights, customPrompt);
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4.1-nano',
         messages: [
           {
             role: 'system',
@@ -35,7 +35,7 @@ export class StorytellerAgent implements IStorytellerAgent {
         ],
         temperature: 0.3,
         response_format: { type: 'json_object' },
-        max_tokens: 4000,
+        max_tokens: 32000,
       });
 
       const content = response.choices[0]?.message?.content;
