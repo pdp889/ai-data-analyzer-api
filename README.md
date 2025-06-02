@@ -1,88 +1,70 @@
 # AI Data Analyzer API
 
-A powerful API for analyzing CSV datasets using AI agents. The system uses a pipeline of specialized agents to understand, analyze, and explain patterns in CSV data files.
+A powerful API for analyzing data using AI agents. The system uses a pipeline of specialized agents to understand, analyze, and explain patterns in data, with built-in conversational capabilities.
 
 ## Features
 
-- **CSV Data Analysis**: Comprehensive analysis of CSV files
-- **Data Profiling**: Understand CSV structure and column types
-- **Pattern Detection**: Identify correlations, trends, and anomalies in CSV data
-- **Narrative Generation**: Create compelling data stories with key points and conclusions
-- **Interactive Q&A**: Ask questions about your analyzed CSV data
-- **Session Management**: Maintain analysis state for follow-up questions
+- **Data Analysis**: Comprehensive analysis of structured data
+- **Data Profiling**: Understand data structure and types
+- **Pattern Detection**: Identify correlations, trends, and anomalies
+- **Narrative Generation**: Create compelling data stories with key points
+- **Interactive Q&A**: Ask questions about your analyzed data
+- **Quality Control**: Automated data quality assessment
+- **Context Management**: Maintain analysis state for follow-up questions
 
-## Architecture
+## System Components
 
-The system uses a pipeline of specialized AI agents to analyze CSV data:
+### Agents (`src/agent/`)
+Specialized AI agents that work together to analyze data and handle conversations:
 
-### Profiler Agent
-- Analyzes CSV structure
-- Identifies column types
-- Provides data quality metrics
-- Generates dataset profile
+- **Analysis Agent** (`analysis.agent.ts`): Orchestrates the analysis pipeline
+- **Profiler Agent** (`profiler.agent.ts`): Analyzes data structure and types
+- **Detective Agent** (`detective.agent.ts`): Discovers patterns and insights
+- **Storyteller Agent** (`storyteller.agent.ts`): Creates narrative summaries
+- **Chat Agent** (`chat.agent.ts`): Handles conversational interactions
+- **Quality Control Agent** (`quality-control.agent.ts`): Ensures data quality
 
-### Detective Agent
-- Analyzes patterns and relationships in CSV data
-- Identifies correlations and trends
-- Generates insights with confidence levels
-- Provides supporting evidence and statistics
+### Tools (`src/tools/`)
+Reusable components that provide functionality to agents:
 
-### Storyteller Agent
-- Creates coherent narratives from CSV analysis
-- Generates key points
-- Provides conclusions
-- Synthesizes complex analysis
+- **Dataset Tool** (`data-set.tool.ts`): Data access and manipulation
+- **Analysis Context Tool** (`analysis-context.tool.ts`): Access to analysis results
+- **Conversation Tool** (`conversation.tool.ts`): Manages chat interactions
 
-## API Endpoints
+### Services (`src/services/`)
+Core business logic and state management:
 
-### Data Analysis
-- `POST /api/analyze`: Upload and analyze a CSV file
-  - Accepts multipart/form-data with CSV file
-  - Only CSV files are supported
-  - Returns profile, insights, and narrative
-
-### Interactive Features
-- `POST /api/ask`: Ask questions about the analyzed CSV data
-  - Requires a question in the request body
-  - Returns AI-generated answer
-
-### Session Management
-- `GET /api/existing-analysis`: Get current analysis state
-- `DELETE /api/clear-session`: Clear current analysis session
+- **Analysis Service** (`analysis.service.ts`): Coordinates analysis operations
+- **Chat Service** (`chat.service.ts`): Manages conversation state
+- **Session Service** (`session.service.ts`): Handles user sessions
 
 ## Data Types
 
-The system uses several key data structures for CSV analysis:
+The system uses Zod schemas for type-safe data structures:
 
 ```typescript
 // Core data structures
-interface DatasetProfile {
-  columns: ColumnInfo[];
-  rowCount: number;
-  summary: string;
-}
+const datasetProfileSchema = z.object({
+  columns: z.array(columnInfoSchema),
+  rowCount: z.number(),
+  summary: z.string(),
+});
 
-interface ColumnInfo {
-  name: string;
-  type: string;
-  missingValues?: number;
-}
+const insightSchema = z.object({
+  type: z.enum(['correlation', 'trend', 'anomaly', 'pattern']),
+  description: z.string(),
+  confidence: z.number(),
+  supportingData: z.object({
+    evidence: z.string(),
+    statistics: z.string(),
+  }),
+});
 
-interface Insight {
-  type: 'correlation' | 'trend' | 'anomaly' | 'pattern';
-  description: string;
-  confidence: number;
-  supportingData: {
-    evidence: string;
-    statistics: string;
-  };
-}
-
-interface StoryAnalysis {
-  narrative: string;
-  keyPoints: string[];
-  conclusion: string;
-}
+const analysisResultSchema = z.object({
+  profile: datasetProfileSchema,
+  insights: z.array(insightSchema),
+  narrative: z.string(),
+});
 ```
 
 ## Getting Started
@@ -109,7 +91,7 @@ interface StoryAnalysis {
 - Implements Winston for logging
 - Includes Swagger/OpenAPI documentation
 - Features comprehensive error handling
-- CSV-only file support with validation
+- Type-safe with Zod schemas
 
 ## Available Scripts
 

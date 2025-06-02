@@ -1,6 +1,6 @@
 import session from 'express-session';
 import { Express } from 'express';
-import { AnalysisState } from '../types/data'; // Adjust path if your data types are elsewhere
+import { AnalysisState } from '@/schemas/analysis.schema';
 
 // Augment express-session to include our custom session data
 declare module 'express-session' {
