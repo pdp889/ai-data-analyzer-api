@@ -10,31 +10,59 @@ import { chatRouter } from './routes/chat.route';
 
 import { setupSwagger } from './utils/swagger';
 import { configureSession } from './middleware/sessionMiddleware';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+if (!process.env.FRONTEND_ORIGIN) {
+  logger.warn('FRONTEND_ORIGIN environment variable is not set. CORS will be disabled for security.');
+}
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
+    origin: process.env.FRONTEND_ORIGIN || false, // false will disable CORS if FRONTEND_ORIGIN is not set
+    methods: ['GET', 'POST', 'DELETE'],
+    allowedHeaders: ['Content-Type'],
     credentials: true,
   })
 );
 
 app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 setupSwagger(app);
-configureSession(app);
+app.use(helmet()); // Security headers
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+}));
 
-app.use('/api', sessionRouter);
-app.use('/api', analysisRouter);
-app.use('/api', chatRouter);
 
-app.use(errorHandler);
+// Start the server
+const startServer = async () => {
+  try {
+    // Initialize session middleware
+    await configureSession(app);
+    
+    // Register routes
+    app.use('/api', sessionRouter);
+    app.use('/api', analysisRouter);
+    app.use('/api', chatRouter);
+    app.use(errorHandler);
 
-app.listen(port, () => {
-  logger.info(`Server is running on port ${port}`);
-  logger.info(`API Documentation available at http://localhost:${port}/api-docs`);
-});
+    app.listen(port, () => {
+      logger.info(`Server is running on port ${port}`);
+      logger.info(`API Documentation available at http://localhost:${port}/api-docs`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

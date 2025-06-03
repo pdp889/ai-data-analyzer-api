@@ -80,8 +80,13 @@ const analysisResultSchema = z.object({
    OPENAI_API_KEY=your_api_key
    PORT=3000
    LOG_LEVEL=info
+   REDIS_URL=redis://localhost:6379  # Optional: defaults to this value
    ```
-5. Start development server: `npm run dev`
+5. Start Redis (required for session storage):
+   ```bash
+   docker-compose up redis
+   ```
+6. Start development server: `npm run dev`
    - For production: `npm run build && npm start`
 
 ## Development
@@ -92,6 +97,7 @@ const analysisResultSchema = z.object({
 - Includes Swagger/OpenAPI documentation
 - Features comprehensive error handling
 - Type-safe with Zod schemas
+- Uses Redis for session storage
 
 ## Available Scripts
 

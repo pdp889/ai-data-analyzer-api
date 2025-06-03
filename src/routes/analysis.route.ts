@@ -5,9 +5,11 @@ import { AnalysisService } from '@/services/analysis.service';
 
 const router = express.Router();
 
-// Configure multer to only accept CSV files
 const upload = multer({
   storage: multer.memoryStorage(),
+  limits: {
+    fileSize: Number(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // Default to 5MB if not set
+  },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
       cb(null, true);

@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes  # Enable persistence
+
+  api:
+    build: .
+    image: ai-data-analyzer-api:latest
+    container_name: ai-data-analyzer-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - FDA_MCP_SERVER_PATH=/app/mcp-server/index.js
+      - FDA_LOG_PATH=/app/logs/app.log
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  redis_data:  # This persists Redis data between container restarts

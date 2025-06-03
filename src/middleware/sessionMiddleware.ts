@@ -1,33 +1,42 @@
 import session from 'express-session';
 import { Express } from 'express';
-import { AnalysisState } from '@/schemas/analysis.schema';
+import { logger } from '@/utils/logger';
+import { createClient } from 'redis';
+import { RedisStore } from 'connect-redis'; // ✅ Named import, not default
 
-// Augment express-session to include our custom session data
-declare module 'express-session' {
-  interface SessionData {
-    analysisState?: AnalysisState;
-  }
-}
-
-export const configureSession = (app: Express): void => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  console.log(
-    `Session Middleware: Configuring for NODE_ENV='${process.env.NODE_ENV}', isProduction=${isProduction}`
-  );
-
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || 'your default secret key here', // IMPORTANT: Use an environment variable for the secret in production
-      resave: false,
-      saveUninitialized: true,
+export const configureSession = async (app: Express): Promise<void> => {
+  try {
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Initialize Redis client
+    let redisClient = createClient({
+      url: process.env.REDIS_URL || 'redis://localhost:6379'
+    });
+    redisClient.connect().catch(console.error);
+    
+    // Initialize store using modern syntax
+    let redisStore = new RedisStore({
+      client: redisClient,
+      prefix: "myapp:", // or whatever prefix you want
+    });
+   
+    app.use(session({
+      store: redisStore,
+      resave: false, // required: force lightweight session keep alive (touch)
+      saveUninitialized: false, // recommended: only save session when data exists
+      secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
       cookie: {
-        secure: isProduction, // true if isProduction, false otherwise
+        secure: isProduction,
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
-        path: '/', // Explicitly set path, good practice
-        sameSite: isProduction ? 'none' : 'lax', // 'none' for HTTPS prod, 'lax' for HTTP dev
+        path: '/',
+        sameSite: isProduction ? 'none' : 'lax',
       },
-    })
-  );
-  console.log('Session middleware configured with environment-specific cookie settings.');
+    }));
+   
+    logger.info('Session middleware configured with Redis store');
+  } catch (error) {
+    logger.error('Failed to configure session middleware:', error);
+    throw error;
+  }
 };
