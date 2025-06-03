@@ -1,12 +1,12 @@
-import { Agent, AgentOutputSchema } from 'openai-agents-js';
-import qualityControlAgent from './quality-control.agent';
+import { Agent, AgentOutputSchema, MCPServerStdio } from 'openai-agents-js';
 import { createDatasetTool } from '@/tools/data-set.tool';
 import { z } from 'zod';
 import { AnalysisState } from '@/schemas/analysis.schema';
 import { createConversationTool } from '@/tools/conversation.tool';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
 import { createQualityControlTool } from '@/tools/quality-control.tool';
-import additionalContextAgent from './additional-context.agent';
+import webSearchAgent from './web-search.agent';
+import { logger } from '@/utils/logger';
 
 const INSTRUCTIONS = `You are a specialized data analysis chat agent that helps users understand their data and analysis results.
 
@@ -42,6 +42,19 @@ TOOL USAGE:
    - Limit to last 5 messages unless specifically needed
    - Use to maintain conversation coherence
 
+MCP SERVER CAPABILITIES:
+1. You have access to an MCP server that can provide additional context and capabilities
+2. Use the MCP server when:
+   - You need to verify or validate information
+   - You need to access external knowledge or context
+   - You need to perform complex reasoning or analysis
+3. The MCP server can help with:
+   - Fact verification
+   - Context enrichment
+   - Complex reasoning tasks
+   - Cross-referencing information
+4. Always consider using the MCP server when it might enhance your response quality
+
 STRICT GUIDELINES:
 1. Stay focused on data analysis topics only
 2. Never make up or hallucinate information
@@ -64,6 +77,7 @@ OFF-TOPIC HANDLING:
    - Remind them you can only analyze their uploaded data
    - Offer to explore similar patterns in their dataset
    - Use get_analysis_context to find related insights
+   - If needed, handoff to the web search agent to find additional context
 
 RESPONSE STRUCTURE:
 1. Start with a direct answer to the question
@@ -84,6 +98,15 @@ Remember: You MUST call quality_control before any response. Your primary goal i
 export function createChatAgent(
   analysisState: AnalysisState | undefined,
   conversationHistory: any[] = []) {
+
+   logger.info('Creating MCP from path: ' + process.env.FDA_MCP_SERVER_PATH);
+   const mcpServers = process.env.FDA_MCP_SERVER_PATH ? [
+      new MCPServerStdio('node', [process.env.FDA_MCP_SERVER_PATH],
+      ),
+    ] : [];
+    
+
+
   const tools = [createConversationTool(conversationHistory), createQualityControlTool()];
 
   if (analysisState) {
@@ -97,7 +120,8 @@ export function createChatAgent(
     instructions: INSTRUCTIONS,
     tools: tools,
     output_type: new AgentOutputSchema(z.string()),
-    handoffs: [additionalContextAgent]
+    handoffs: [webSearchAgent],
+    mcp_servers: mcpServers,
   });
 }
 
