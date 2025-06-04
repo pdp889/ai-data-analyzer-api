@@ -26,11 +26,12 @@ export const configureSession = async (app: Express): Promise<void> => {
       saveUninitialized: false, // recommended: only save session when data exists
       secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
       cookie: {
-        secure: isProduction,
+        secure: true,
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
         path: '/',
-        sameSite: isProduction ? 'none' : 'lax',
+        sameSite: 'none',
+        domain: undefined
       },
     }));
    

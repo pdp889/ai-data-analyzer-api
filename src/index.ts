@@ -45,12 +45,13 @@ const startServer = async () => {
     // Initialize session middleware
     await configureSession(app);
     
-    app.use(errorHandler);
-    
     // Register routes
     app.use('/api', sessionRouter);
     app.use('/api', analysisRouter);
     app.use('/api', chatRouter);
+
+    // Error handler must be registered after routes
+    app.use(errorHandler);
 
     app.listen(port, () => {
       logger.info(`Server is running on port ${port}`);
