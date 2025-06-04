@@ -15,11 +15,15 @@ services:
     container_name: ai-data-analyzer-api
     ports:
       - "3000:3000"
+    volumes:
+    - ~/certs:/root/certs:ro  # Read-only mount
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
       - FDA_MCP_SERVER_PATH=/app/mcp-server/index.js
       - FDA_LOG_PATH=/app/logs/app.log
+      - KEY_PATH=/root/certs/origin-key.pem
+      - CERT_PATH=/root/certs/origin-cert.pem
     env_file:
       - .env
     depends_on:
