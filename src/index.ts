@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
 
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -53,10 +56,25 @@ const startServer = async () => {
     // Error handler must be registered after routes
     app.use(errorHandler);
 
-    app.listen(port, () => {
-      logger.info(`Server is running on port ${port}`);
-      logger.info(`API Documentation available at http://localhost:${port}/api-docs`);
-    });
+    if (process.env.NODE_ENV === 'production') {
+      // HTTPS configuration
+      const httpsOptions = {
+        key: fs.readFileSync(process.env.KEY_PATH || ''),
+        cert: fs.readFileSync(process.env.CERT_PATH || '')
+      };
+
+      // Create HTTPS server
+      https.createServer(httpsOptions, app).listen(port, () => {
+        logger.info(`HTTPS Server is running on port ${port}`);
+        logger.info(`API Documentation available at https://api.ai-analyzer-project.com/api-docs`);
+      });
+    } else {
+      // Development server
+      app.listen(port, () => {
+        logger.info(`Development server is running on port ${port}`);
+        logger.info(`API Documentation available at http://localhost:${port}/api-docs`);
+      });
+    }
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);

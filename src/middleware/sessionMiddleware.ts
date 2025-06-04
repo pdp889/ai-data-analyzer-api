@@ -6,7 +6,7 @@ import { RedisStore } from 'connect-redis'; // ✅ Named import, not default
 
 export const configureSession = async (app: Express): Promise<void> => {
   try {
-    const cookieSecure = process.env.COOKIE_SECURE === 'true';
+    const isProduction = process.env.NODE_ENV === 'production';
     
     // Initialize Redis client
     let redisClient = createClient({
@@ -26,11 +26,11 @@ export const configureSession = async (app: Express): Promise<void> => {
       saveUninitialized: true,
       secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
       cookie: {
-        secure: cookieSecure,
+        secure: isProduction,
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
         path: '/',
-        sameSite: cookieSecure ? 'none' : 'lax',
+        sameSite: isProduction ? 'none' : 'lax',
       },
     }));
    
