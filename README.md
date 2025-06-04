@@ -14,14 +14,11 @@ A powerful backend service for analyzing datasets using AI agents, providing ins
 
 - **Enhanced Capabilities**
   - Web search integration for real-time data verification
-  - FDA MCP Server for specialized medical data analysis
-  - Custom tool integration framework
+  - Access to custom-built FDA MCP Server for specialized medical data analysis
 
 - **Data Processing**
   - CSV file parsing and validation
-  - Automatic data type detection
-  - Statistical analysis
-  - Pattern recognition
+  - Statistical analysis and pattern recognition
 
 - **Security**
   - HTTPS support for production
@@ -84,21 +81,12 @@ cp .env.example .env
 docker-compose up redis
 ```
 
-## Development
-
-Start the development server:
+5. Start the development server:
 ```bash
 npm run dev
 ```
 
 The API will be available at `http://localhost:3000/api` with Swagger documentation at `/api-docs`.
-
-## Production
-
-Build and start the production server using docker:
-```bash
-docker compose up --build
-```
 
 ## API Endpoints
 
