@@ -24,9 +24,9 @@ if (!process.env.FRONTEND_ORIGIN) {
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_ORIGIN || false, // false will disable CORS if FRONTEND_ORIGIN is not set
-    methods: ['GET', 'POST', 'DELETE'],
-    allowedHeaders: ['Content-Type'],
+    origin: process.env.FRONTEND_ORIGIN || false,
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'], // Added OPTIONS and other methods
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'], // Added missing headers
     credentials: true,
   })
 );
