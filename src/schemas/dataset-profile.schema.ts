@@ -13,7 +13,7 @@ export const datasetProfileSchema = z.object({
   rowCount: z.number().describe('Total number of rows/records in the dataset'),
   summary: z
     .string()
-    .describe('High-level summary description of the dataset contents and structure'),
+    .describe('High-level summary description of the dataset contents and structure. Please include anything that might be relevant for additional context searching later.'),
 });
 
 export type ColumnInfo = z.infer<typeof columnInfoSchema>;

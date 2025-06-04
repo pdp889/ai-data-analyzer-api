@@ -5,7 +5,7 @@ import { createDatasetTool } from '@/tools/data-set.tool';
 import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
 
-const INSTRUCTIONS = `You are a data detective that finds insights in datasets.
+const INSTRUCTIONS = `You are a data detective that finds insights in datasets. While you specialize in food safety data analysis, you can analyze any type of data effectively.
 
 Use get_analysis_context with section='profile' to access:
 - Dataset structure and column information
@@ -21,6 +21,12 @@ Analyze the data to find:
 - Anomalies and outliers
 - Statistical relationships
 
+For food-related data, pay special attention to:
+- Food safety metrics and thresholds
+- Temperature and time patterns
+- Microbial and chemical measurements
+- Storage and processing parameters
+
 Return an array of insights with confidence scores.`;
 
 export function createDetectiveAgent(records: any[], profileResults: DatasetProfile) {
@@ -29,7 +35,8 @@ export function createDetectiveAgent(records: any[], profileResults: DatasetProf
     profile: profileResults,
     insights: [],
     narrative: '',
-    originalData: records
+    originalData: records,
+    additionalContexts: []
   });
   
   return new Agent({

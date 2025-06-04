@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { datasetProfileSchema } from './dataset-profile.schema';
 import { insightSchema } from './insight.schema';
-
+import { additionalContextSchema } from './additional-context.schema';
 export const analysisResultSchema = z.object({
   profile: datasetProfileSchema.describe(
     'Technical profile of the dataset including structure and basic statistics'
@@ -16,6 +16,7 @@ export const analysisResultSchema = z.object({
     .describe(
       'Human-readable story that synthesizes the profile and insights into a coherent analysis narrative'
     ),
+  additionalContexts: z.array(additionalContextSchema).describe('Additional context that is relevant to the analysis')
 });
 
 export const analysisStateSchema = analysisResultSchema.extend({

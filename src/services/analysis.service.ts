@@ -9,6 +9,7 @@ import { SessionService } from './session.service';
 import fs from 'fs';
 import path from 'path';
 import { logger } from '@/utils/logger';
+import { createAdditionalContextAgent } from '@/agent/additional-context.agent';
 
 export class AnalysisService {
 
@@ -79,10 +80,19 @@ export class AnalysisService {
       req.session.id
     );
 
+    const additionalContextAgent = createAdditionalContextAgent(records, profilerResult.finalOutput, detectiveResult.finalOutput, storytellerResult.finalOutput);
+
+    const additionalContextResult = await runWithTracking(
+      additionalContextAgent,
+      'Please perform a comprehensive analysis of the uploaded dataset',
+      req.session.id
+    );
+
     const result : AnalysisResult = {
       profile: profilerResult.finalOutput,
       insights: detectiveResult.finalOutput,
       narrative: storytellerResult.finalOutput,
+      additionalContexts: additionalContextResult.finalOutput
     }
 
     SessionService.saveAnalysisState(req, result, records);

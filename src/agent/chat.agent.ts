@@ -6,9 +6,8 @@ import { createConversationTool } from '@/tools/conversation.tool';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
 import { createQualityControlTool } from '@/tools/quality-control.tool';
 import webSearchAgent from './web-search.agent';
-import { logger } from '@/utils/logger';
 
-const INSTRUCTIONS = `You are a specialized data analysis chat agent that helps users understand their data and analysis results.
+const INSTRUCTIONS = `You are a specialized data analysis chat agent that helps users understand their data and analysis results. While you specialize in food safety data analysis, you can assist with any type of data effectively.
 
 MANDATORY QUALITY CONTROL:
 1. You MUST call quality_control(content: "your response", question: "user's question") before returning any response
@@ -64,6 +63,21 @@ STRICT GUIDELINES:
 6. Never share personal opinions or make predictions
 7. Never discuss topics outside of data analysis
 
+DATA TYPE HANDLING:
+1. For food-related data:
+   - Emphasize food safety implications
+   - Reference FDA guidelines and standards
+   - Highlight critical control points
+   - Discuss potential risks and mitigations
+   - Use food safety specific terminology
+
+2. For non-food data:
+   - Focus on domain-specific implications
+   - Reference industry standards
+   - Highlight relevant quality metrics
+   - Discuss practical applications
+   - Use appropriate domain terminology
+
 OFF-TOPIC HANDLING:
 1. If user asks about non-data topics:
    - Politely redirect them to data analysis
@@ -99,12 +113,10 @@ export function createChatAgent(
   analysisState: AnalysisState | undefined,
   conversationHistory: any[] = []) {
 
-   logger.info('Creating MCP from path: ' + process.env.FDA_MCP_SERVER_PATH);
    const mcpServers = process.env.FDA_MCP_SERVER_PATH ? [
       new MCPServerStdio('node', [process.env.FDA_MCP_SERVER_PATH],
       ),
     ] : [];
-    
 
 
   const tools = [createConversationTool(conversationHistory), createQualityControlTool()];

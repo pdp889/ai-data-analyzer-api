@@ -53,6 +53,7 @@ export class SessionService {
       insights: analysis.insights,
       narrative: analysis.narrative,
       originalData: records,
+      additionalContexts: analysis.additionalContexts
     };
     sessionData.analysisState = analysisState;
     await this.saveSession(req, sessionData);
