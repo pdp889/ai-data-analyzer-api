@@ -79,7 +79,6 @@ const analysisResultSchema = z.object({
    ```
    OPENAI_API_KEY=your_api_key
    PORT=3000
-   LOG_LEVEL=info
    REDIS_URL=redis://localhost:6379  # Optional: defaults to this value
    ```
 5. Start Redis (required for session storage):
