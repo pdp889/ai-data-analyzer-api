@@ -25,8 +25,6 @@ if (!process.env.FRONTEND_ORIGIN) {
 app.use(
   cors({
     origin: process.env.FRONTEND_ORIGIN || false,
-    methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'], // Added OPTIONS and other methods
-    allowedHeaders: '*', // Added missing headers
     credentials: true,
   })
 );
