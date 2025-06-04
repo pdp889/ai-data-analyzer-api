@@ -23,15 +23,14 @@ export const configureSession = async (app: Express): Promise<void> => {
     app.use(session({
       store: redisStore,
       resave: false, // required: force lightweight session keep alive (touch)
-      saveUninitialized: false, // recommended: only save session when data exists
+      saveUninitialized: true,
       secret: process.env.SESSION_SECRET || 'dev-secret-key-change-in-production',
       cookie: {
-        secure: true,
+        secure: isProduction,
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
         path: '/',
-        sameSite: 'none',
-        domain: undefined
+        sameSite: isProduction ? 'none' : 'lax',
       },
     }));
    
