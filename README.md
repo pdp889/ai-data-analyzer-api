@@ -1,120 +1,123 @@
 # AI Data Analyzer API
 
-A powerful API for analyzing data using AI agents. The system uses a pipeline of specialized agents to understand, analyze, and explain patterns in data, with built-in conversational capabilities.
+A powerful backend service for analyzing datasets using AI agents, providing insights, and maintaining conversation context.
 
 ## Features
 
-- **Data Analysis**: Comprehensive analysis of structured data
-- **Data Profiling**: Understand data structure and types
-- **Pattern Detection**: Identify correlations, trends, and anomalies
-- **Narrative Generation**: Create compelling data stories with key points
-- **Interactive Q&A**: Ask questions about your analyzed data
-- **Quality Control**: Automated data quality assessment
-- **Context Management**: Maintain analysis state for follow-up questions
+- **Multi-Agent Analysis Pipeline**
+  - Profiler Agent: Analyzes dataset structure and statistics
+  - Detective Agent: Identifies patterns and insights
+  - Storyteller Agent: Generates human-readable narratives
+  - Chat Agent: Answers questions about analyzed data
+  - Quality Assurance Agent: Ensures quality responses
+  - Web Search Agent: Supports Chat Agent by exposing web search capabilities
 
-## System Components
+- **Enhanced Capabilities**
+  - Web search integration for real-time data verification
+  - FDA MCP Server for specialized medical data analysis
+  - Custom tool integration framework
 
-### Agents (`src/agent/`)
-Specialized AI agents that work together to analyze data and handle conversations:
+- **Data Processing**
+  - CSV file parsing and validation
+  - Automatic data type detection
+  - Statistical analysis
+  - Pattern recognition
 
-- **Analysis Agent** (`analysis.agent.ts`): Orchestrates the analysis pipeline
-- **Profiler Agent** (`profiler.agent.ts`): Analyzes data structure and types
-- **Detective Agent** (`detective.agent.ts`): Discovers patterns and insights
-- **Storyteller Agent** (`storyteller.agent.ts`): Creates narrative summaries
-- **Chat Agent** (`chat.agent.ts`): Handles conversational interactions
-- **Quality Control Agent** (`quality-control.agent.ts`): Ensures data quality
+- **Security**
+  - HTTPS support for production
+  - Rate limiting
+  - Helmet security headers
+  - CORS configuration
+  - Environment-based security settings
 
-### Tools (`src/tools/`)
-Reusable components that provide functionality to agents:
+## Prerequisites
 
-- **Dataset Tool** (`data-set.tool.ts`): Data access and manipulation
-- **Analysis Context Tool** (`analysis-context.tool.ts`): Access to analysis results
-- **Conversation Tool** (`conversation.tool.ts`): Manages chat interactions
+- Node.js (v16 or higher)
+- Docker and Docker Compose
+- OpenAI API key
+- (Optional) SSL certificates for HTTPS
+- (Optional) FDA API Key
 
-### Services (`src/services/`)
-Core business logic and state management:
+## Environment Variables
 
-- **Analysis Service** (`analysis.service.ts`): Coordinates analysis operations
-- **Chat Service** (`chat.service.ts`): Manages conversation state
-- **Session Service** (`session.service.ts`): Handles user sessions
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
 
-## Data Types
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
 
-The system uses Zod schemas for type-safe data structures:
+# Security
+FRONTEND_ORIGIN=http://localhost:5173
+KEY_PATH=/path/to/private.key
+CERT_PATH=/path/to/certificate.crt
 
-```typescript
-// Core data structures
-const datasetProfileSchema = z.object({
-  columns: z.array(columnInfoSchema),
-  rowCount: z.number(),
-  summary: z.string(),
-});
+# OpenAI Configuration
+OPENAI_API_KEY=your-api-key
 
-const insightSchema = z.object({
-  type: z.enum(['correlation', 'trend', 'anomaly', 'pattern']),
-  description: z.string(),
-  confidence: z.number(),
-  supportingData: z.object({
-    evidence: z.string(),
-    statistics: z.string(),
-  }),
-});
-
-const analysisResultSchema = z.object({
-  profile: datasetProfileSchema,
-  insights: z.array(insightSchema),
-  narrative: z.string(),
-});
+# FDA MCP Server (Optional)
+FDA_MCP_SERVER_PATH=/path/to/fda-mcp-server
 ```
 
-## Getting Started
+## Installation
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Copy environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-4. Configure environment variables:
-   ```
-   OPENAI_API_KEY=your_api_key
-   PORT=3000
-   REDIS_URL=redis://localhost:6379  # Optional: defaults to this value
-   ```
-5. Start Redis (required for session storage):
-   ```bash
-   docker-compose up redis
-   ```
-6. Start development server: `npm run dev`
-   - For production: `npm run build && npm start`
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/ai-data-analyzer-api.git
+cd ai-data-analyzer-api
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. Start Redis using Docker Compose:
+```bash
+docker-compose up redis
+```
 
 ## Development
 
-- Built with TypeScript and Express.js
-- Uses OpenAI's API for AI analysis
-- Implements Winston for logging
-- Includes Swagger/OpenAPI documentation
-- Features comprehensive error handling
-- Type-safe with Zod schemas
-- Uses Redis for session storage
+Start the development server:
+```bash
+npm run dev
+```
 
-## Available Scripts
+The API will be available at `http://localhost:3000/api` with Swagger documentation at `/api-docs`.
 
-- `npm run dev`: Start development server with hot reload
-- `npm run build`: Build for production
-- `npm start`: Start production server
-- `npm run lint`: Run ESLint
-- `npm run format`: Format code with Prettier
-- `npm test`: Run tests
+## Production
+
+Build and start the production server using docker:
+```bash
+docker compose up --build
+```
+
+## API Endpoints
+
+### Analysis
+- `POST /api/analyze`: Upload and analyze a dataset
+- `GET /api/existing-analysis`: Get current analysis results
+- `DELETE /api/clear-session`: Clear current analysis session
+
+### Chat
+- `POST /api/ask`: Ask questions about the analyzed data
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create your feature branch
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
 
 ## License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License - see the LICENSE file for details.

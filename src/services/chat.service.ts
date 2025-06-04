@@ -16,7 +16,7 @@ export class ChatService {
   
     SessionService.addMessageToHistory(req, userMessage);
   
-    const chatAgent = createChatAgent(existingAnalysis, SessionService.getConversationHistory(req));
+    const chatAgent = createChatAgent(existingAnalysis, await SessionService.getConversationHistory(req));
   
     const result = await runWithTracking(chatAgent, question, req.session.id);
   

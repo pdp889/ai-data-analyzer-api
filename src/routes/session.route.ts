@@ -41,21 +41,35 @@ const router = Router();
  *                     profile: { col1: "string", col2: "number" }
  *                     insights: [ { type: "trend", description: "Sales increasing" } ]
  *                     narrative: "Overall, the data shows an upward trend in sales."
+ *       404:
+ *         description: No analysis found in session
  *       500:
  *         description: Internal server error.
  */
-router.get('/existing-analysis', (req, res) => {
-  logger.info('Getting existing analysis');
-  const analysisState = SessionService.getAnalysisState(req);
-  if (!analysisState) {
-    return res.status(404).json({ message: 'No analysis found in session' });
-  } else {
+router.get('/existing-analysis', async (req, res) => {
+  try {
+    logger.info('Getting existing analysis');
+    const analysisState = await SessionService.getAnalysisState(req);
+    const conversationHistory = await SessionService.getConversationHistory(req);
+
+    if (!analysisState) {
+      return res.json({ 
+        success: false, 
+        message: 'No analysis found in session' 
+      });
+    }
+
     res.json({
       success: true,
       data: analysisState,
-      conversationHistory: SessionService.getConversationHistory(req)
+      conversationHistory
     });
-
+  } catch (error) {
+    logger.error('Error getting existing analysis:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to retrieve analysis data' 
+    });
   }
 });
 
@@ -94,9 +108,20 @@ router.get('/existing-analysis', (req, res) => {
  *                   type: string
  *                   example: "Failed to clear session"
  */
-router.delete('/clear-session', (req, res) => {
-  SessionService.clearSession(req);
-  res.json({ message: 'Session cleared successfully' });
+router.delete('/clear-session', async (req, res) => {
+  try {
+    await SessionService.clearSession(req);
+    res.json({ 
+      success: true,
+      message: 'Session cleared successfully' 
+    });
+  } catch (error) {
+    logger.error('Error clearing session:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to clear session' 
+    });
+  }
 });
 
 export const sessionRouter = router;

@@ -49,7 +49,7 @@ router.post('/ask', async (req, res, next) => {
       throw new AppError(400, 'Question is required');
     }
 
-    const existingAnalysis: AnalysisState | null = SessionService.getAnalysisState(req);
+    const existingAnalysis: AnalysisState | null = await SessionService.getAnalysisState(req);
 
     if (!existingAnalysis) {
       throw new AppError(

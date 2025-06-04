@@ -10,6 +10,7 @@ import { logger } from './utils/logger';
 import { sessionRouter } from './routes/session.route';
 import { analysisRouter } from './routes/analysis.route';
 import { chatRouter } from './routes/chat.route';
+import { SessionService } from './services/session.service';
 
 import { setupSwagger } from './utils/swagger';
 import { configureSession } from './middleware/sessionMiddleware';
@@ -29,6 +30,7 @@ app.use(
   cors({
     origin: process.env.FRONTEND_ORIGIN || false,
     credentials: true,
+    exposedHeaders: ['x-session-token']
   })
 );
 
@@ -47,6 +49,9 @@ const startServer = async () => {
   try {
     // Initialize session middleware
     await configureSession(app);
+    
+    // Initialize SessionService
+    await SessionService.init();
     
     // Register routes
     app.use('/api', sessionRouter);
