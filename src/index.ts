@@ -26,7 +26,7 @@ app.use(
   cors({
     origin: process.env.FRONTEND_ORIGIN || false,
     methods: ['GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'OPTIONS'], // Added OPTIONS and other methods
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'], // Added missing headers
+    allowedHeaders: '*', // Added missing headers
     credentials: true,
   })
 );
