@@ -91,4 +91,17 @@ router.post('/analyze', upload.single('file'), async (req, res, next) => {
   }
 });
 
+router.post('/analyze-default', async (req, res, next) => {
+  try {
+    const analysis = await AnalysisService.analyzeDefaultDataset(req);
+
+    res.json({
+      success: true,
+      data: analysis,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+});
+
 export const analysisRouter = router;

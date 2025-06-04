@@ -53,44 +53,10 @@ router.get('/existing-analysis', (req, res) => {
     res.json({
       success: true,
       data: analysisState,
+      conversationHistory: SessionService.getConversationHistory(req)
     });
 
   }
-});
-
-/**
- * @swagger
- * /api/conversation-history:
- *   get:
- *     tags: [Data Analysis]
- *     summary: Get conversation history from session
- *     description: Retrieves the conversation history stored in the current user's session.
- *     responses:
- *       200:
- *         description: Conversation history
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 error:
- *                   type: string
- *                   example: "Failed to retrieve conversation history"
- */
-router.get('/conversation-history', (req, res) => {
-  const history = SessionService.getConversationHistory(req);
-  res.json(history);
 });
 
 /**
