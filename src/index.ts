@@ -29,7 +29,6 @@ app.use(
   })
 );
 
-app.use(express.json());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
@@ -40,18 +39,18 @@ app.use(rateLimit({
   max: 100 // limit each IP to 100 requests per windowMs
 }));
 
-
 // Start the server
 const startServer = async () => {
   try {
     // Initialize session middleware
     await configureSession(app);
     
+    app.use(errorHandler);
+    
     // Register routes
     app.use('/api', sessionRouter);
     app.use('/api', analysisRouter);
     app.use('/api', chatRouter);
-    app.use(errorHandler);
 
     app.listen(port, () => {
       logger.info(`Server is running on port ${port}`);
