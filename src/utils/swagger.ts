@@ -62,13 +62,15 @@ Errors follow the format:
           type: 'apiKey',
           in: 'cookie',
           name: 'connect.sid',
-          description: 'Session cookie for authentication'
-        }
-      }
+          description: 'Session cookie for authentication',
+        },
+      },
     },
-    security: [{
-      sessionAuth: []
-    }]
+    security: [
+      {
+        sessionAuth: [],
+      },
+    ],
   },
   apis: ['./src/routes/*.ts'], // Path to the API routes
 };
@@ -76,9 +78,13 @@ Errors follow the format:
 const specs = swaggerJsdoc(options);
 
 export const setupSwagger = (app: Express) => {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: "AI Data Analyzer API Documentation",
-    customfavIcon: "/favicon.ico"
-  }));
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(specs, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'AI Data Analyzer API Documentation',
+      customfavIcon: '/favicon.ico',
+    })
+  );
 };

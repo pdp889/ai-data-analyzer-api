@@ -18,37 +18,37 @@ interface ExtendedRunResult {
 }
 
 export async function runWithTracking(
-  agent: Agent<any>, 
-  message: string, 
+  agent: Agent<any>,
+  message: string,
   sessionId?: string
 ): Promise<ExtendedRunResult> {
   const startTime = new Date();
   const inputLength = message.length;
-  
+
   logger.info(`🚀 [${agent.name}] Starting execution`, {
     message: message.substring(0, 100) + (message.length > 100 ? '...' : ''),
     sessionId,
     timestamp: startTime.toISOString(),
-    inputLength
+    inputLength,
   });
-  
+
   try {
-    const result : RunResult = await Runner.run(agent, message);
+    const result: RunResult = await Runner.run(agent, message);
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
     const outputLength = JSON.stringify(result.finalOutput).length;
-    
+
     logger.info(`✅ [${agent.name}] Completed successfully`, {
       duration: `${duration}ms`,
       outputLength,
       finalAgent: result.lastAgent?.name,
       sessionId,
-      timestamp: endTime.toISOString()
+      timestamp: endTime.toISOString(),
     });
-    
+
     return {
       finalOutput: result.finalOutput,
-      finalAgent:  result.lastAgent?.name,
+      finalAgent: result.lastAgent?.name,
       metadata: {
         sessionId,
         startTime,
@@ -56,20 +56,19 @@ export async function runWithTracking(
         duration,
         agentName: agent.name,
         inputLength,
-        outputLength
-      }
+        outputLength,
+      },
     };
-    
   } catch (error) {
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
-    
+
     logger.error(`❌ [${agent.name}] Failed after ${duration}ms`, {
       error: (error as Error).message,
       sessionId,
-      timestamp: endTime.toISOString()
+      timestamp: endTime.toISOString(),
     });
-    
+
     throw error;
   }
 }

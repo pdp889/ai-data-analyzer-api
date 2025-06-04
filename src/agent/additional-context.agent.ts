@@ -1,9 +1,10 @@
-import { additionalContextSchema } from "@/schemas/additional-context.schema";
-import { DatasetProfile } from "@/schemas/dataset-profile.schema";
-import { Insight } from "@/schemas/insight.schema";
-import { createAnalysisContextTool } from "@/tools/analysis-context.tool";
-import { Agent, AgentOutputSchema, MCPServerStdio } from "openai-agents-js";
-import { z } from "zod";
+import { additionalContextSchema } from '@/schemas/additional-context.schema';
+import { DatasetProfile } from '@/schemas/dataset-profile.schema';
+import { Insight } from '@/schemas/insight.schema';
+import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
+import { createDatasetTool } from '@/tools/data-set.tool';
+import { Agent, AgentOutputSchema, MCPServerStdio } from 'openai-agents-js';
+import { z } from 'zod';
 
 const INSTRUCTIONS = `
 You are an FDA data analysis agent with access to MCP Servers for FDA recall and adverse events data. Your goal is to find relevant FDA recalls and adverse events that provide useful context for the dataset.
@@ -65,22 +66,27 @@ Return 3-7 additional contexts. Each should have:
 Remember: It's better to find several somewhat relevant results than no results at all. The goal is to provide useful context that helps understand the food safety landscape related to the dataset.
 `;
 
-export function createAdditionalContextAgent(records: any[], profileResults: DatasetProfile, detectiveResults: Insight[], narrative: string) {
-    const analysisContextTool = createAnalysisContextTool({
-      profile: profileResults,
-      insights: detectiveResults,
-      narrative: narrative,
-      originalData: records,
-      additionalContexts: []
-    });
-   const mcpServers = process.env.FDA_MCP_SERVER_PATH ? [
-      new MCPServerStdio('node', [process.env.FDA_MCP_SERVER_PATH]),
-    ] : [];
+export function createAdditionalContextAgent(
+  records: any[],
+  profileResults: DatasetProfile,
+  detectiveResults: Insight[],
+  narrative: string
+) {
+  const datasetTool = createDatasetTool(records);
+  const analysisContextTool = createAnalysisContextTool({
+    profile: profileResults,
+    insights: detectiveResults,
+    narrative: narrative,
+    additionalContexts: [],
+  });
+  const mcpServers = process.env.FDA_MCP_SERVER_PATH
+    ? [new MCPServerStdio('node', [process.env.FDA_MCP_SERVER_PATH])]
+    : [];
   return new Agent({
     name: 'The Additional Context Agent',
     model: 'gpt-4.1-nano',
     instructions: INSTRUCTIONS,
-    tools: [analysisContextTool],
+    tools: [analysisContextTool, datasetTool],
     output_type: new AgentOutputSchema(z.array(additionalContextSchema)),
     mcp_servers: mcpServers,
   });

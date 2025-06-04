@@ -16,7 +16,9 @@ export const analysisResultSchema = z.object({
     .describe(
       'Human-readable story that synthesizes the profile and insights into a coherent analysis narrative'
     ),
-  additionalContexts: z.array(additionalContextSchema).describe('Additional context that is relevant to the analysis')
+  additionalContexts: z
+    .array(additionalContextSchema)
+    .describe('Additional context that is relevant to the analysis'),
 });
 
 export const analysisStateSchema = analysisResultSchema.extend({

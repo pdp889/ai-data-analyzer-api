@@ -11,12 +11,7 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = (
-  err: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const errorHandler = (err: Error, req: Request, res: Response) => {
   logger.error('Error:', err);
 
   if (err instanceof AppError) {
@@ -24,8 +19,8 @@ export const errorHandler = (
       success: false,
       error: {
         message: err.message,
-        code: err.statusCode
-      }
+        code: err.statusCode,
+      },
     });
   }
 
@@ -34,7 +29,7 @@ export const errorHandler = (
     success: false,
     error: {
       message: 'Internal server error',
-      code: 500
-    }
+      code: 500,
+    },
   });
 };

@@ -35,10 +35,9 @@ export function createDetectiveAgent(records: any[], profileResults: DatasetProf
     profile: profileResults,
     insights: [],
     narrative: '',
-    originalData: records,
-    additionalContexts: []
+    additionalContexts: [],
   });
-  
+
   return new Agent({
     name: 'The Detective Agent',
     model: 'gpt-4.1-nano',

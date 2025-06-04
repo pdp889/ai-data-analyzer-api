@@ -2,7 +2,7 @@ import { createClient } from 'redis';
 
 export class RedisService {
   static client = createClient({
-    url: process.env.REDIS_URL
+    url: process.env.REDIS_URL,
   });
 
   static async init() {

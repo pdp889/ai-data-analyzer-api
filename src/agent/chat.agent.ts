@@ -111,13 +111,11 @@ Remember: You MUST call quality_control before any response. Your primary goal i
 
 export function createChatAgent(
   analysisState: AnalysisState | undefined,
-  conversationHistory: any[] = []) {
-
-   const mcpServers = process.env.FDA_MCP_SERVER_PATH ? [
-      new MCPServerStdio('node', [process.env.FDA_MCP_SERVER_PATH],
-      ),
-    ] : [];
-
+  conversationHistory: any[] = []
+) {
+  const mcpServers = process.env.FDA_MCP_SERVER_PATH
+    ? [new MCPServerStdio('node', [process.env.FDA_MCP_SERVER_PATH])]
+    : [];
 
   const tools = [createConversationTool(conversationHistory), createQualityControlTool()];
 

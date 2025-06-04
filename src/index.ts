@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import https from 'https';
 import fs from 'fs';
-import path from 'path';
 
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
@@ -23,14 +22,16 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 if (!process.env.FRONTEND_ORIGIN) {
-  logger.warn('FRONTEND_ORIGIN environment variable is not set. CORS will be disabled for security.');
+  logger.warn(
+    'FRONTEND_ORIGIN environment variable is not set. CORS will be disabled for security.'
+  );
 }
 
 app.use(
   cors({
     origin: process.env.FRONTEND_ORIGIN || false,
     credentials: true,
-    exposedHeaders: ['x-session-token']
+    exposedHeaders: ['x-session-token'],
   })
 );
 
@@ -39,20 +40,22 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 setupSwagger(app);
 app.use(helmet()); // Security headers
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-}));
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+  })
+);
 
 // Start the server
 const startServer = async () => {
   try {
     // Initialize session middleware
     await configureSession(app);
-    
+
     // Initialize SessionService
     await SessionService.init();
-    
+
     // Register routes
     app.use('/api', sessionRouter);
     app.use('/api', analysisRouter);
@@ -65,7 +68,7 @@ const startServer = async () => {
       // HTTPS configuration
       const httpsOptions = {
         key: fs.readFileSync(process.env.KEY_PATH || ''),
-        cert: fs.readFileSync(process.env.CERT_PATH || '')
+        cert: fs.readFileSync(process.env.CERT_PATH || ''),
       };
 
       // Create HTTPS server

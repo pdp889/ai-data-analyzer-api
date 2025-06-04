@@ -17,7 +17,7 @@ export function createQualityControlTool() {
         question: {
           type: 'string',
           description: 'The original user question being answered',
-        }
+        },
       },
       required: ['content', 'question'],
     },
@@ -25,7 +25,7 @@ export function createQualityControlTool() {
       logger.info('quality_control tool called');
       try {
         const params = typeof input === 'string' ? JSON.parse(input) : input;
-        
+
         // Call the quality control agent with the content and question
         const result = await runWithTracking(
           qualityControlAgent,
@@ -36,9 +36,9 @@ export function createQualityControlTool() {
         return JSON.stringify(result.finalOutput);
       } catch (error) {
         return JSON.stringify({
-          error: `Failed to evaluate content: ${error instanceof Error ? error.message : 'Unknown error'}`
+          error: `Failed to evaluate content: ${error instanceof Error ? error.message : 'Unknown error'}`,
         });
       }
     },
   });
-} 
+}

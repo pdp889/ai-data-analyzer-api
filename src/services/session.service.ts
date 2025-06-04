@@ -6,7 +6,7 @@ import { logger } from '@/utils/logger';
 
 export class SessionService {
   private static redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379'
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
   });
 
   static async init(): Promise<void> {
@@ -29,31 +29,18 @@ export class SessionService {
     return sessionData?.chatHistory || [];
   }
 
-  static async getAgentResults(req: any): Promise<any> {
-    const sessionData = await this.getSessionData(req);
-    return sessionData?.agentResults || {};
-  }
-
-  static async saveAgentResults(req: any, agentResults: any): Promise<void> {
-    const sessionData = await this.getSessionData(req);
-    sessionData.agentResults = agentResults;
-    await this.saveSession(req, sessionData);
-  }
-
-  static async clearAgentResults(req: any): Promise<void> {
-    const sessionData = await this.getSessionData(req);
-    sessionData.agentResults = {};
-    await this.saveSession(req, sessionData);
-  }
-
-  static async saveAnalysisState(req: any, analysis: AnalysisResult, records: any[]): Promise<void> {
+  static async saveAnalysisState(
+    req: any,
+    analysis: AnalysisResult,
+    records: any[]
+  ): Promise<void> {
     const sessionData = await this.getSessionData(req);
     const analysisState: AnalysisState = {
       profile: analysis.profile,
       insights: analysis.insights,
       narrative: analysis.narrative,
       originalData: records,
-      additionalContexts: analysis.additionalContexts
+      additionalContexts: analysis.additionalContexts,
     };
     sessionData.analysisState = analysisState;
     await this.saveSession(req, sessionData);

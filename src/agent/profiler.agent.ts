@@ -18,7 +18,7 @@ For food-related data, pay special attention to:
 
 export function createProfilerAgent(records: any[]) {
   const datasetTool = createDatasetTool(records);
-  
+
   return new Agent({
     name: 'The Profiler Agent',
     model: 'gpt-4.1-nano',

@@ -53,22 +53,22 @@ router.get('/existing-analysis', async (req, res) => {
     const conversationHistory = await SessionService.getConversationHistory(req);
 
     if (!analysisState) {
-      return res.json({ 
-        success: false, 
-        message: 'No analysis found in session' 
+      return res.json({
+        success: false,
+        message: 'No analysis found in session',
       });
     }
 
     res.json({
       success: true,
       data: analysisState,
-      conversationHistory
+      conversationHistory,
     });
   } catch (error) {
     logger.error('Error getting existing analysis:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to retrieve analysis data' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve analysis data',
     });
   }
 });
@@ -111,15 +111,15 @@ router.get('/existing-analysis', async (req, res) => {
 router.delete('/clear-session', async (req, res) => {
   try {
     await SessionService.clearSession(req);
-    res.json({ 
+    res.json({
       success: true,
-      message: 'Session cleared successfully' 
+      message: 'Session cleared successfully',
     });
   } catch (error) {
     logger.error('Error clearing session:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to clear session' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear session',
     });
   }
 });

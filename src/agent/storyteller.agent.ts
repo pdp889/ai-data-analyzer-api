@@ -1,5 +1,6 @@
 import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
+import { createDatasetTool } from '@/tools/data-set.tool';
 import { Agent, AgentOutputSchema } from 'openai-agents-js';
 import { z } from 'zod';
 
@@ -24,21 +25,25 @@ For food-related data:
 
 Return a string with a narrative summary of the analysis.`;
 
-
-export function createStorytellerAgent(records: any[], profileResults: DatasetProfile, detectiveResults: any[]) {
+export function createStorytellerAgent(
+  records: any[],
+  profileResults: DatasetProfile,
+  detectiveResults: any[]
+) {
   const analysisContextTool = createAnalysisContextTool({
     profile: profileResults,
     insights: detectiveResults,
     narrative: '',
-    originalData: records,
-    additionalContexts: []
+    additionalContexts: [],
   });
+
+  const datasetTool = createDatasetTool(records);
 
   return new Agent({
     name: 'The Storyteller Agent',
     model: 'gpt-4.1-nano',
     instructions: INSTRUCTIONS,
-    tools: [analysisContextTool],
+    tools: [analysisContextTool, datasetTool],
     output_type: new AgentOutputSchema(z.string(), true),
   });
 }
