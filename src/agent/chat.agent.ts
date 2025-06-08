@@ -4,7 +4,7 @@ import { createConversationTool } from '@/tools/conversation.tool';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
 import { createQualityControlTool } from '@/tools/quality-control.tool';
 import webSearchAgent from './web-search.agent';
-import { Agent, MCPServerStdio } from '@openai/agents';
+import { Agent, MCPServer, MCPServerStdio, Tool } from '@openai/agents';
 
 const INSTRUCTIONS = `You are a specialized data analysis chat agent that helps users understand their data and analysis results. While you specialize in food safety data analysis, you can assist with any type of data effectively.
 
@@ -108,18 +108,25 @@ ERROR HANDLING:
 
 Remember: You MUST call quality_control before any response. Your primary goal is to help users understand their data and analysis results. Stay focused, be precise, and maintain high quality standards.`;
 
-export function createChatAgent(
+export async function createChatAgent(
   analysisState: AnalysisState | undefined,
   conversationHistory: any[] = []
 ) {
-   const mcpServers = process.env.FDA_MCP_SERVER_PATH
-   ? [new MCPServerStdio({
-       command: 'node',
-       args: [process.env.FDA_MCP_SERVER_PATH]
-     })]
-   : [];
+  const fdaMCPServer = process.env.FDA_MCP_SERVER_PATH
+    ? new MCPServerStdio({
+        command: 'node',
+        args: [process.env.FDA_MCP_SERVER_PATH],
+      })
+    : undefined;
 
-  const tools = [createConversationTool(conversationHistory), createQualityControlTool()];
+  const mcpServers: MCPServer[] = [];
+
+  if (fdaMCPServer) {
+    await fdaMCPServer.connect();
+    mcpServers.push(fdaMCPServer);
+  }
+
+  const tools: Tool[] = [createConversationTool(conversationHistory), createQualityControlTool()];
 
   if (analysisState) {
     tools.push(createDatasetTool(analysisState.originalData));

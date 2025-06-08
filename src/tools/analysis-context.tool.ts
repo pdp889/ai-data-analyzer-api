@@ -1,49 +1,68 @@
-import { FunctionTool } from 'openai-agents-js';
+import { tool } from '@openai/agents';
 import { AnalysisResult } from '@/schemas/analysis.schema';
+import { z } from 'zod';
+
+const sectionSchema = z.enum(['profile', 'insights', 'narrative', 'all']);
+
+const responseSchema = z.discriminatedUnion('section', [
+  z.object({
+    section: z.literal('profile'),
+    data: z.any(),
+  }),
+  z.object({
+    section: z.literal('insights'),
+    data: z.array(z.any()),
+    count: z.number(),
+  }),
+  z.object({
+    section: z.literal('narrative'),
+    data: z.string(),
+  }),
+  z.object({
+    section: z.literal('complete_analysis'),
+    data: z.object({
+      profile: z.any(),
+      insights: z.array(z.any()),
+      narrative: z.string(),
+      additionalContexts: z.array(z.any()),
+    }),
+  }),
+]);
 
 export function createAnalysisContextTool(analysisResult: AnalysisResult) {
-  return new FunctionTool({
+  return tool({
     name: 'get_analysis_context',
     description: 'Get the current analysis context including profile, insights, and narrative',
-    params_json_schema: {
-      type: 'object',
-      properties: {
-        section: {
-          type: 'string',
-          enum: ['profile', 'insights', 'narrative', 'all'],
-          description: 'Which section of the analysis to return',
-        },
-      },
-      required: ['section'],
-    },
-    on_invoke_tool: async ({ input }) => {
-      const params = typeof input === 'string' ? JSON.parse(input) : input;
+    parameters: z.object({
+      section: sectionSchema,
+    }),
+    execute: async ({ section }) => {
       const { profile, insights, narrative, additionalContexts } = analysisResult;
 
-      switch (params.section) {
+      switch (section) {
         case 'profile':
-          return JSON.stringify({
-            section: 'profile',
+          return {
+            section: 'profile' as const,
             data: profile,
-          });
+          };
         case 'insights':
-          return JSON.stringify({
-            section: 'insights',
+          return {
+            section: 'insights' as const,
             data: insights,
             count: insights?.length || 0,
-          });
+          };
         case 'narrative':
-          return JSON.stringify({
-            section: 'narrative',
+          return {
+            section: 'narrative' as const,
             data: narrative,
-          });
+          };
         case 'all':
-          return JSON.stringify({
-            section: 'complete_analysis',
+          return {
+            section: 'complete_analysis' as const,
             data: { profile, insights, narrative, additionalContexts },
-          });
+          };
         default:
-          throw new Error(`Invalid section: ${params.section}`);
+          throw new Error(`Invalid section: ${section}`);
       }
     },
   });

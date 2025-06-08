@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
-import { FunctionTool } from 'openai-agents-js';
+import { tool } from '@openai/agents';
+import { z } from 'zod';
 
 export interface ConversationMessage {
   role: 'user' | 'assistant';
@@ -8,34 +9,37 @@ export interface ConversationMessage {
   messageId?: string;
 }
 
+const messageTypeSchema = z.enum(['all', 'user', 'assistant']);
+
+const responseSchema = z.object({
+  messages: z.array(
+    z.object({
+      role: z.enum(['user', 'assistant']),
+      content: z.string(),
+      timestamp: z.date(),
+      messageId: z.string().optional(),
+    })
+  ),
+  totalCount: z.number(),
+  retrievedCount: z.number(),
+  filter: messageTypeSchema,
+});
+
 export function createConversationTool(conversationHistory: ConversationMessage[]) {
-  return new FunctionTool({
+  return tool({
     name: 'get_conversation_history',
     description: 'Access previous conversation messages for context',
-    params_json_schema: {
-      type: 'object',
-      properties: {
-        count: {
-          type: 'number',
-          description: 'Number of recent messages to retrieve (default: 5)',
-          minimum: 1,
-          maximum: 20,
-        },
-        messageType: {
-          type: 'string',
-          enum: ['all', 'user', 'assistant'],
-          description: 'Filter by message type',
-        },
-      },
-      required: ['count', 'messageType'],
-    },
-    on_invoke_tool: async ({ input }) => {
+    parameters: z.object({
+      count: z
+        .number()
+        .min(1)
+        .max(20)
+        .describe('Number of recent messages to retrieve (default: 5)'),
+      messageType: messageTypeSchema.describe('Filter by message type'),
+    }),
+    execute: async ({ count, messageType }) => {
       logger.info('get_conversation_history tool called');
       try {
-        const params = typeof input === 'string' ? JSON.parse(input) : input;
-        const count = params.count || 5;
-        const messageType = params.messageType || 'all';
-
         let filteredHistory = conversationHistory;
 
         // Filter by message type if specified
@@ -51,17 +55,19 @@ export function createConversationTool(conversationHistory: ConversationMessage[
           messageId: msg.messageId,
         }));
 
-        return JSON.stringify({
+        return {
           messages: recentMessages,
           totalCount: conversationHistory.length,
           retrievedCount: recentMessages.length,
           filter: messageType,
-        });
+        };
       } catch (error) {
-        return JSON.stringify({
-          error: `Failed to get conversation history: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        return {
           messages: [],
-        });
+          totalCount: 0,
+          retrievedCount: 0,
+          filter: messageType,
+        };
       }
     },
   });

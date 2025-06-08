@@ -3,7 +3,7 @@ import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 import { Insight } from '@/schemas/insight.schema';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
 import { createDatasetTool } from '@/tools/data-set.tool';
-import { Agent, MCPServerStdio } from '@openai/agents';
+import { Agent, MCPServer, MCPServerStdio } from '@openai/agents';
 
 const INSTRUCTIONS = `
 You are an FDA data analysis agent with access to MCP Servers for FDA recall and adverse events data. Your goal is to find relevant FDA recalls and adverse events that provide useful context for the dataset.
@@ -65,7 +65,7 @@ Return 3-7 additional contexts. Each should have:
 Remember: It's better to find several somewhat relevant results than no results at all. The goal is to provide useful context that helps understand the food safety landscape related to the dataset.
 `;
 
-export function createAdditionalContextAgent(
+export async function createAdditionalContextAgent(
   records: any[],
   profileResults: DatasetProfile,
   detectiveResults: Insight[],
@@ -79,14 +79,19 @@ export function createAdditionalContextAgent(
     additionalContexts: [],
   });
 
+  const fdaMCPServer = process.env.FDA_MCP_SERVER_PATH
+    ? new MCPServerStdio({
+        command: 'node',
+        args: [process.env.FDA_MCP_SERVER_PATH],
+      })
+    : undefined;
 
-  const mcpServers = process.env.FDA_MCP_SERVER_PATH
-  ? [new MCPServerStdio({
-      command: 'node',
-      args: [process.env.FDA_MCP_SERVER_PATH]
-    })]
-  : [];
+  const mcpServers: MCPServer[] = [];
 
+  if (fdaMCPServer) {
+    await fdaMCPServer.connect();
+    mcpServers.push(fdaMCPServer);
+  }
 
   return new Agent({
     name: 'The Additional Context Agent',

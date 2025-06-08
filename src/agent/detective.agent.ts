@@ -1,4 +1,4 @@
-import {  insightSchemaAgentResult } from '@/schemas/insight.schema';
+import { insightSchemaAgentResult } from '@/schemas/insight.schema';
 import { createDatasetTool } from '@/tools/data-set.tool';
 import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';

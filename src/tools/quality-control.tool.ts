@@ -1,43 +1,45 @@
-import { FunctionTool } from 'openai-agents-js';
+import { tool, run } from '@openai/agents';
 import qualityControlAgent from '@/agent/quality-control.agent';
-import { runWithTracking } from '@/utils/agent-runner';
 import { logger } from '@/utils/logger';
+import { z } from 'zod';
+
+const responseSchema = z.object({
+  approved: z.boolean(),
+  confidence: z.number().min(0).max(1),
+  issues: z.array(z.string()),
+  suggestions: z.array(z.string()),
+  category: z.enum(['analysis', 'narrative', 'insights', 'conversation']),
+  score: z.number().min(0).max(10),
+  reasoning: z.string(),
+});
 
 export function createQualityControlTool() {
-  return new FunctionTool({
+  return tool({
     name: 'quality_control',
     description: 'Evaluate the quality and accuracy of content using the quality control agent',
-    params_json_schema: {
-      type: 'object',
-      properties: {
-        content: {
-          type: 'string',
-          description: 'The content to evaluate',
-        },
-        question: {
-          type: 'string',
-          description: 'The original user question being answered',
-        },
-      },
-      required: ['content', 'question'],
-    },
-    on_invoke_tool: async ({ input }) => {
+    parameters: z.object({
+      content: z.string().describe('The content to evaluate'),
+      question: z.string().describe('The original user question being answered'),
+    }),
+    execute: async ({ content, question }) => {
       logger.info('quality_control tool called');
       try {
-        const params = typeof input === 'string' ? JSON.parse(input) : input;
-
         // Call the quality control agent with the content and question
-        const result = await runWithTracking(
-          qualityControlAgent,
-          JSON.stringify(params),
-          'quality-control'
-        );
+        const result = await run(qualityControlAgent, JSON.stringify({ content, question }));
 
-        return JSON.stringify(result.finalOutput);
+        return result.finalOutput;
       } catch (error) {
-        return JSON.stringify({
-          error: `Failed to evaluate content: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        });
+        return {
+          approved: false,
+          confidence: 0,
+          issues: [
+            `Failed to evaluate content: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          ],
+          suggestions: ['Please try again with different content'],
+          category: 'conversation' as const,
+          score: 0,
+          reasoning: 'Evaluation failed due to an error',
+        };
       }
     },
   });

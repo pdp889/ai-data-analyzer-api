@@ -9,7 +9,10 @@ import fs from 'fs';
 import path from 'path';
 import { createAdditionalContextAgent } from '@/agent/additional-context.agent';
 import { run } from '@openai/agents';
-import { AdditionalContext, AdditionalContextAgentResult } from '@/schemas/additional-context.schema';
+import {
+  AdditionalContext,
+  AdditionalContextAgentResult,
+} from '@/schemas/additional-context.schema';
 import { Insight, InsightAgentResult } from '@/schemas/insight.schema';
 import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 
@@ -64,10 +67,10 @@ export class AnalysisService {
 
     const profilerResult = await run(
       profilerAgent,
-      'Please perform a comprehensive analysis of the uploaded dataset',
+      'Please perform a comprehensive analysis of the uploaded dataset'
     );
 
-    const profile : DatasetProfile = profilerResult.finalOutput as DatasetProfile;
+    const profile: DatasetProfile = profilerResult.finalOutput as DatasetProfile;
 
     const detectiveAgent = createDetectiveAgent(records, profile);
 
@@ -76,22 +79,18 @@ export class AnalysisService {
       'Please perform a comprehensive analysis of the uploaded dataset'
     );
 
-    const { insights } : { insights: Insight[] } = detectiveResult.finalOutput as InsightAgentResult;
+    const { insights }: { insights: Insight[] } = detectiveResult.finalOutput as InsightAgentResult;
 
-    const storytellerAgent = createStorytellerAgent(
-      records,
-      profile,
-      insights
-    );
+    const storytellerAgent = createStorytellerAgent(records, profile, insights);
 
     const storytellerResult = await run(
       storytellerAgent,
       'Please perform a comprehensive analysis of the uploaded dataset'
     );
 
-    const narrative : string = storytellerResult.finalOutput as string;
+    const narrative: string = storytellerResult.finalOutput as string;
 
-    const additionalContextAgent = createAdditionalContextAgent(
+    const additionalContextAgent = await createAdditionalContextAgent(
       records,
       profile,
       insights,
@@ -103,7 +102,8 @@ export class AnalysisService {
       'Please perform a comprehensive analysis of the uploaded dataset'
     );
 
-    const { contexts } : { contexts: AdditionalContext[] } = additionalContextResult.finalOutput as AdditionalContextAgentResult;
+    const { contexts }: { contexts: AdditionalContext[] } =
+      additionalContextResult.finalOutput as AdditionalContextAgentResult;
 
     const result: AnalysisResult = {
       profile: profile,
