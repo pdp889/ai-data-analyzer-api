@@ -24,9 +24,9 @@ export const insightSchema = z.object({
     .describe('Supporting information that backs up the insight claim'),
 });
 
-export const detectiveAnalysisSchema = z
-  .array(insightSchema)
-  .describe('Collection of insights discovered through detective analysis of the dataset');
+export const insightSchemaAgentResult = z.object({
+  insights: z.array(insightSchema).describe('Collection of insights discovered through detective analysis of the dataset'),
+});
 
 export type Insight = z.infer<typeof insightSchema>;
-export type DetectiveAnalysis = z.infer<typeof detectiveAnalysisSchema>;
+export type InsightAgentResult = z.infer<typeof insightSchemaAgentResult>;

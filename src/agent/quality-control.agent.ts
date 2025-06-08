@@ -1,5 +1,5 @@
-import { Agent, AgentOutputSchema } from 'openai-agents-js';
 import { qualityAssessmentSchema } from '@/schemas/quality-control.schema';
+import { Agent } from '@openai/agents';
 
 const INSTRUCTIONS = `You are a quality control agent responsible for evaluating the quality and accuracy of AI-generated content.
 
@@ -28,8 +28,8 @@ const qualityControlAgent = new Agent({
   name: 'The Quality Control Agent',
   model: 'gpt-4.1-nano',
   instructions: INSTRUCTIONS,
-  handoff_description:
+  handoffDescription:
     'Quality Control Agent responsible for evaluating the quality and accuracy of AI-generated content',
-  output_type: new AgentOutputSchema(qualityAssessmentSchema),
+  outputType: qualityAssessmentSchema,
 });
 export default qualityControlAgent;

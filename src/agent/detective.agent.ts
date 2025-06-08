@@ -1,9 +1,8 @@
-import { Agent, AgentOutputSchema } from 'openai-agents-js';
-import { insightSchema } from '@/schemas/insight.schema';
-import { z } from 'zod';
+import {  insightSchemaAgentResult } from '@/schemas/insight.schema';
 import { createDatasetTool } from '@/tools/data-set.tool';
 import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
+import { Agent } from '@openai/agents';
 
 const INSTRUCTIONS = `You are a data detective that finds insights in datasets. While you specialize in food safety data analysis, you can analyze any type of data effectively.
 
@@ -43,6 +42,6 @@ export function createDetectiveAgent(records: any[], profileResults: DatasetProf
     model: 'gpt-4.1-nano',
     instructions: INSTRUCTIONS,
     tools: [datasetTool, analysisContextTool],
-    output_type: new AgentOutputSchema(z.array(insightSchema), true),
+    outputType: insightSchemaAgentResult,
   });
 }

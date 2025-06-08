@@ -2,7 +2,7 @@ import { createChatAgent } from '@/agent/chat.agent';
 import { ConversationMessage } from '@/tools/conversation.tool';
 import { AnalysisState } from '@/schemas/analysis.schema';
 import { SessionService } from './session.service';
-import { runWithTracking } from '@/utils/agent-runner';
+import { run } from '@openai/agents';
 
 export class ChatService {
   static getResponse = async (question: string, existingAnalysis: AnalysisState, req: any) => {
@@ -20,11 +20,11 @@ export class ChatService {
       await SessionService.getConversationHistory(req)
     );
 
-    const result = await runWithTracking(chatAgent, question, req.session.id);
+    const result = await run(chatAgent, question);
 
     const assistantMessage: ConversationMessage = {
       role: 'assistant',
-      content: result.finalOutput,
+      content: result.finalOutput as string,
       timestamp: new Date(),
       messageId: `msg_${Date.now()}_assistant`,
     };

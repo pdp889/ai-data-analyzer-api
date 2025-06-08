@@ -1,11 +1,10 @@
-import { Agent, AgentOutputSchema, MCPServerStdio } from 'openai-agents-js';
 import { createDatasetTool } from '@/tools/data-set.tool';
-import { z } from 'zod';
 import { AnalysisState } from '@/schemas/analysis.schema';
 import { createConversationTool } from '@/tools/conversation.tool';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
 import { createQualityControlTool } from '@/tools/quality-control.tool';
 import webSearchAgent from './web-search.agent';
+import { Agent, MCPServerStdio } from '@openai/agents';
 
 const INSTRUCTIONS = `You are a specialized data analysis chat agent that helps users understand their data and analysis results. While you specialize in food safety data analysis, you can assist with any type of data effectively.
 
@@ -113,9 +112,12 @@ export function createChatAgent(
   analysisState: AnalysisState | undefined,
   conversationHistory: any[] = []
 ) {
-  const mcpServers = process.env.FDA_MCP_SERVER_PATH
-    ? [new MCPServerStdio('node', [process.env.FDA_MCP_SERVER_PATH])]
-    : [];
+   const mcpServers = process.env.FDA_MCP_SERVER_PATH
+   ? [new MCPServerStdio({
+       command: 'node',
+       args: [process.env.FDA_MCP_SERVER_PATH]
+     })]
+   : [];
 
   const tools = [createConversationTool(conversationHistory), createQualityControlTool()];
 
@@ -129,9 +131,8 @@ export function createChatAgent(
     model: 'gpt-4.1-nano',
     instructions: INSTRUCTIONS,
     tools: tools,
-    output_type: new AgentOutputSchema(z.string()),
     handoffs: [webSearchAgent],
-    mcp_servers: mcpServers,
+    mcpServers: mcpServers,
   });
 }
 

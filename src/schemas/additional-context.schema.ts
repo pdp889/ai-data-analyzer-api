@@ -11,4 +11,10 @@ export const additionalContextSchema = z.object({
   relevanceToData: z.string().describe('Why this event or recall is relevant to the data.'),
 });
 
+export const additionalContextSchemaAgentResult = z.object({
+  contexts: z.array(additionalContextSchema),
+});
+
 export type AdditionalContext = z.infer<typeof additionalContextSchema>;
+
+export type AdditionalContextAgentResult = z.infer<typeof additionalContextSchemaAgentResult>;

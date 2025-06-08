@@ -1,7 +1,6 @@
 import { AppError } from '@/middleware/errorHandler';
 import { AnalysisResult } from '@/schemas/analysis.schema';
 import { parse } from 'csv-parse/sync';
-import { runWithTracking } from '@/utils/agent-runner';
 import { createDetectiveAgent } from '@/agent/detective.agent';
 import { createProfilerAgent } from '@/agent/profiler.agent';
 import { createStorytellerAgent } from '@/agent/storyteller.agent';
@@ -9,6 +8,10 @@ import { SessionService } from './session.service';
 import fs from 'fs';
 import path from 'path';
 import { createAdditionalContextAgent } from '@/agent/additional-context.agent';
+import { run } from '@openai/agents';
+import { AdditionalContext, AdditionalContextAgentResult } from '@/schemas/additional-context.schema';
+import { Insight, InsightAgentResult } from '@/schemas/insight.schema';
+import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 
 export class AnalysisService {
   static analyzeDatasetWithAgents = async (req: any): Promise<AnalysisResult> => {
@@ -59,50 +62,54 @@ export class AnalysisService {
   static analyzeWithAgents = async (req: any, records: any[]) => {
     const profilerAgent = createProfilerAgent(records);
 
-    const profilerResult = await runWithTracking(
+    const profilerResult = await run(
       profilerAgent,
       'Please perform a comprehensive analysis of the uploaded dataset',
-      req.session.id
     );
 
-    const detectiveAgent = createDetectiveAgent(records, profilerResult.finalOutput);
+    const profile : DatasetProfile = profilerResult.finalOutput as DatasetProfile;
 
-    const detectiveResult = await runWithTracking(
+    const detectiveAgent = createDetectiveAgent(records, profile);
+
+    const detectiveResult = await run(
       detectiveAgent,
-      'Please perform a comprehensive analysis of the uploaded dataset',
-      req.session.id
+      'Please perform a comprehensive analysis of the uploaded dataset'
     );
+
+    const { insights } : { insights: Insight[] } = detectiveResult.finalOutput as InsightAgentResult;
 
     const storytellerAgent = createStorytellerAgent(
       records,
-      profilerResult.finalOutput,
-      detectiveResult.finalOutput
+      profile,
+      insights
     );
 
-    const storytellerResult = await runWithTracking(
+    const storytellerResult = await run(
       storytellerAgent,
-      'Please perform a comprehensive analysis of the uploaded dataset',
-      req.session.id
+      'Please perform a comprehensive analysis of the uploaded dataset'
     );
+
+    const narrative : string = storytellerResult.finalOutput as string;
 
     const additionalContextAgent = createAdditionalContextAgent(
       records,
-      profilerResult.finalOutput,
-      detectiveResult.finalOutput,
-      storytellerResult.finalOutput
+      profile,
+      insights,
+      narrative
     );
 
-    const additionalContextResult = await runWithTracking(
+    const additionalContextResult = await run(
       additionalContextAgent,
-      'Please perform a comprehensive analysis of the uploaded dataset',
-      req.session.id
+      'Please perform a comprehensive analysis of the uploaded dataset'
     );
+
+    const { contexts } : { contexts: AdditionalContext[] } = additionalContextResult.finalOutput as AdditionalContextAgentResult;
 
     const result: AnalysisResult = {
-      profile: profilerResult.finalOutput,
-      insights: detectiveResult.finalOutput,
-      narrative: storytellerResult.finalOutput,
-      additionalContexts: additionalContextResult.finalOutput,
+      profile: profile,
+      insights: insights,
+      narrative: narrative,
+      additionalContexts: contexts,
     };
 
     SessionService.saveAnalysisState(req, result, records);

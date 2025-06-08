@@ -1,8 +1,7 @@
 import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
 import { createDatasetTool } from '@/tools/data-set.tool';
-import { Agent, AgentOutputSchema } from 'openai-agents-js';
-import { z } from 'zod';
+import { Agent } from '@openai/agents';
 
 const INSTRUCTIONS = `You are a data storyteller that creates compelling narratives from analysis. While you specialize in food safety data analysis, you can create narratives for any type of data effectively.
 
@@ -44,6 +43,5 @@ export function createStorytellerAgent(
     model: 'gpt-4.1-nano',
     instructions: INSTRUCTIONS,
     tools: [analysisContextTool, datasetTool],
-    output_type: new AgentOutputSchema(z.string(), true),
   });
 }
