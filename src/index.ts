@@ -40,12 +40,28 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 setupSwagger(app);
 app.use(helmet()); // Security headers
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-  })
-);
+
+// Trust proxy before rate limiter
+app.set('trust proxy', 1);
+
+// Configure rate limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  message: {
+    success: false,
+    error: {
+      message: 'Too many requests, please try again later.',
+      code: 429
+    }
+  },
+  // Skip rate limiting for health check endpoints
+  skip: (req) => req.path === '/health' || req.path === '/api-docs'
+});
+
+app.use(limiter);
 
 // Start the server
 const startServer = async () => {

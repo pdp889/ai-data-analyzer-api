@@ -9,6 +9,8 @@ WORKDIR /app
 
 # Copy built MCP server
 COPY --from=mcp-builder /mcp-server/dist /app/mcp-server
+COPY --from=mcp-builder /mcp-server/package.json /app/mcp-server/
+COPY --from=mcp-builder /mcp-server/node_modules /app/mcp-server/node_modules
 
 # Install dependencies first (for better caching)
 COPY package*.json ./
