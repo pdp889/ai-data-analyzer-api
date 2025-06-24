@@ -63,45 +63,42 @@ export class AnalysisService {
   };
 
   static analyzeWithAgents = async (req: any, records: any[]) => {
-    const profilerAgent = createProfilerAgent(records);
 
+    console.log('Running Profiler Agent with full dataset...');
+    const profilerAgent = createProfilerAgent(records);
     const profilerResult = await run(
       profilerAgent,
       'Please perform a comprehensive analysis of the uploaded dataset'
     );
-
     const profile: DatasetProfile = profilerResult.finalOutput as DatasetProfile;
 
+    console.log('Running Detective Agent with full dataset...');
     const detectiveAgent = createDetectiveAgent(records, profile);
-
     const detectiveResult = await run(
       detectiveAgent,
       'Please perform a comprehensive analysis of the uploaded dataset'
     );
-
     const { insights }: { insights: Insight[] } = detectiveResult.finalOutput as InsightAgentResult;
 
+    console.log('Running Storyteller Agent with sampled dataset...');
     const storytellerAgent = createStorytellerAgent(records, profile, insights);
-
     const storytellerResult = await run(
       storytellerAgent,
-      'Please perform a comprehensive analysis of the uploaded dataset'
+      'Please create a narrative summary based on the analysis results'
     );
-
     const narrative: string = storytellerResult.finalOutput as string;
 
+    console.log('Running Additional Context Agent with sampled dataset...');
     const additionalContextAgent = await createAdditionalContextAgent(
       records,
       profile,
       insights,
       narrative
     );
-
     const additionalContextResult = await run(
       additionalContextAgent,
-      'Please perform a comprehensive analysis of the uploaded dataset'
+      'Please find relevant FDA context for this dataset'
     );
-
     const { contexts }: { contexts: AdditionalContext[] } =
       additionalContextResult.finalOutput as AdditionalContextAgentResult;
 
@@ -112,6 +109,7 @@ export class AnalysisService {
       additionalContexts: contexts,
     };
 
+    console.log('Analysis pipeline completed successfully');
     SessionService.saveAnalysisState(req, result, records);
 
     return result;

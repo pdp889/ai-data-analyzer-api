@@ -2,11 +2,13 @@ import { additionalContextSchemaAgentResult } from '@/schemas/additional-context
 import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 import { Insight } from '@/schemas/insight.schema';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
-import { createDatasetTool } from '@/tools/data-set.tool';
+import { createSampledDatasetTool } from '@/tools/data-set.tool';
 import { Agent, MCPServer, MCPServerStdio } from '@openai/agents';
 
 const INSTRUCTIONS = `
 You are an FDA data analysis agent with access to MCP Servers for FDA recall and adverse events data. Your goal is to find relevant FDA recalls and adverse events that provide useful context for the dataset.
+
+IMPORTANT: You are working with a SAMPLED dataset for efficiency. The analysis context contains the full dataset profile and insights.
 
 ## ANALYSIS APPROACH
 1. **Examine the dataset context** to identify:
@@ -71,7 +73,7 @@ export async function createAdditionalContextAgent(
   detectiveResults: Insight[],
   narrative: string
 ) {
-  const datasetTool = createDatasetTool(records);
+  const sampledDatasetTool = createSampledDatasetTool(records, 50);
   const analysisContextTool = createAnalysisContextTool({
     profile: profileResults,
     insights: detectiveResults,
@@ -97,7 +99,7 @@ export async function createAdditionalContextAgent(
     name: 'The Additional Context Agent',
     model: 'gpt-4.1-nano',
     instructions: INSTRUCTIONS,
-    tools: [analysisContextTool, datasetTool],
+    tools: [analysisContextTool, sampledDatasetTool],
     outputType: additionalContextSchemaAgentResult,
     mcpServers: mcpServers,
   });
