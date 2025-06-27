@@ -88,6 +88,31 @@ The API will be available at `http://localhost:3000/api` with Swagger documentat
 - `POST /api/analyze`: Upload and analyze a dataset
 - `GET /api/existing-analysis`: Get current analysis results
 - `DELETE /api/clear-session`: Clear current analysis session
+- `GET /api/analyze/status?sessionToken=...`: **(SSE)** Stream real-time agent status updates for the current analysis session
+
+#### SSE Status Endpoint Usage
+
+To receive real-time updates on which agent is running, connect to the SSE endpoint after starting an analysis:
+
+1. Start analysis and capture the `x-session-token` response header:
+
+```js
+const response = await fetch('/api/analyze', { method: 'POST', body: formData, credentials: 'include' });
+const sessionToken = response.headers.get('x-session-token');
+```
+
+2. Connect to the SSE endpoint using the session token as a query parameter:
+
+```js
+const eventSource = new EventSource(`/api/analyze/status?sessionToken=${sessionToken}`);
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Status update:', data);
+};
+```
+
+- The SSE stream will send updates as each agent starts, runs, and completes.
+- If the session token is invalid or missing, the connection will be closed.
 
 ### Chat
 - `POST /api/ask`: Ask questions about the analyzed data
