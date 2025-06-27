@@ -5,19 +5,63 @@ import { AnalysisService } from '@/services/analysis.service';
 
 const router = express.Router();
 
+// Enhanced security configuration for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: Number(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // Default to 5MB if not set
+    files: 1, // Only allow 1 file at a time
+    fieldSize: 1024, // Limit field size
   },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
-      cb(null, true);
-    } else {
-      cb(new AppError(400, 'Only CSV files are supported'));
+    // Validate file type more strictly
+    if (file.mimetype !== 'text/csv' && !file.originalname.toLowerCase().endsWith('.csv')) {
+      return cb(new AppError(400, 'Only CSV files are supported'));
     }
+    
+    // Validate filename for path traversal attempts
+    const filename = file.originalname.toLowerCase();
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return cb(new AppError(400, 'Invalid filename detected'));
+    }
+    
+    // Validate file size
+    if (file.size > (Number(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024)) {
+      return cb(new AppError(400, 'File size exceeds maximum allowed size'));
+    }
+    
+    cb(null, true);
   },
 });
+
+// Input validation middleware
+const validateAnalysisRequest = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!req.file) {
+    return next(new AppError(400, 'No file uploaded'));
+  }
+  
+  // Additional validation for file content
+  if (!req.file.buffer || req.file.buffer.length === 0) {
+    return next(new AppError(400, 'Empty file uploaded'));
+  }
+  
+  // Check for suspicious content patterns
+  const content = req.file.buffer.toString('utf8');
+  const suspiciousPatterns = [
+    /\.\.\//, // Path traversal
+    /<script/i, // Script tags
+    /javascript:/i, // JavaScript protocol
+    /data:text\/html/i, // Data URLs
+  ];
+  
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(content)) {
+      return next(new AppError(400, 'File contains suspicious content'));
+    }
+  }
+  
+  next();
+};
 
 /**
  * @swagger
@@ -78,7 +122,7 @@ const upload = multer({
  *       429:
  *         description: OpenAI API quota or rate limit exceeded
  */
-router.post('/analyze', upload.single('file'), async (req, res, next) => {
+router.post('/analyze', upload.single('file'), validateAnalysisRequest, async (req, res, next) => {
   try {
     const analysis = await AnalysisService.analyzeDatasetWithAgents(req);
 

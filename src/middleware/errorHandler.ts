@@ -12,7 +12,8 @@ export class AppError extends Error {
 }
 
 export const errorHandler = (err: Error, req: Request, res: Response) => {
-  logger.error('Error:', err);
+  // Only log the error message, not the entire error object to prevent sensitive data leakage
+  logger.error('Error:', err.message);
 
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
