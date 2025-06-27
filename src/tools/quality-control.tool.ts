@@ -3,16 +3,6 @@ import qualityControlAgent from '@/agent/quality-control.agent';
 import { logger } from '@/utils/logger';
 import { z } from 'zod';
 
-const responseSchema = z.object({
-  approved: z.boolean(),
-  confidence: z.number().min(0).max(1),
-  issues: z.array(z.string()),
-  suggestions: z.array(z.string()),
-  category: z.enum(['analysis', 'narrative', 'insights', 'conversation']),
-  score: z.number().min(0).max(10),
-  reasoning: z.string(),
-});
-
 export function createQualityControlTool() {
   return tool({
     name: 'quality_control',

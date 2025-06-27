@@ -26,7 +26,10 @@ const redisClient = createClient({
 });
 
 redisClient.connect().catch((error) => {
-  logger.error('Failed to connect to Redis:', error instanceof Error ? error.message : 'Unknown error');
+  logger.error(
+    'Failed to connect to Redis:',
+    error instanceof Error ? error.message : 'Unknown error'
+  );
 });
 
 export const sessionMiddleware = async (req: Request, res: Response, next: NextFunction) => {

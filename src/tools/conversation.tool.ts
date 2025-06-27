@@ -11,20 +11,6 @@ export interface ConversationMessage {
 
 const messageTypeSchema = z.enum(['all', 'user', 'assistant']);
 
-const responseSchema = z.object({
-  messages: z.array(
-    z.object({
-      role: z.enum(['user', 'assistant']),
-      content: z.string(),
-      timestamp: z.date(),
-      messageId: z.string().optional(),
-    })
-  ),
-  totalCount: z.number(),
-  retrievedCount: z.number(),
-  filter: messageTypeSchema,
-});
-
 export function createConversationTool(conversationHistory: ConversationMessage[]) {
   return tool({
     name: 'get_conversation_history',

@@ -16,8 +16,6 @@ export class ChatService {
 
     SessionService.addMessageToHistory(req, userMessage);
 
-
-
     const chatAgent = await createChatAgent(
       existingAnalysis,
       await SessionService.getConversationHistory(req)

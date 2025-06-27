@@ -4,9 +4,12 @@ import { z } from 'zod';
 
 const formatSchema = z.enum(['full', 'sample', 'summary']);
 
-
 // Smart sampling function
-function sampleDataset(dataset: any[], sampleSize: number = 50, method: 'stratified' | 'random' | 'systematic' = 'stratified') {
+function sampleDataset(
+  dataset: any[],
+  sampleSize: number = 50,
+  method: 'stratified' | 'random' | 'systematic' = 'stratified'
+) {
   if (dataset.length <= sampleSize) {
     return dataset;
   }
@@ -14,25 +17,26 @@ function sampleDataset(dataset: any[], sampleSize: number = 50, method: 'stratif
   switch (method) {
     case 'random':
       return dataset.sort(() => Math.random() - 0.5).slice(0, sampleSize);
-    
+
     case 'systematic':
       const step = Math.floor(dataset.length / sampleSize);
       return dataset.filter((_, index) => index % step === 0).slice(0, sampleSize);
-    
+
     case 'stratified':
     default:
       // Simple stratified sampling - take evenly distributed samples
       const stepSize = dataset.length / sampleSize;
-      return Array.from({ length: sampleSize }, (_, i) => 
-        dataset[Math.floor(i * stepSize)]
-      ).filter(Boolean);
+      return Array.from({ length: sampleSize }, (_, i) => dataset[Math.floor(i * stepSize)]).filter(
+        Boolean
+      );
   }
 }
 
 export function createDatasetTool(dataset: any[]) {
   return tool({
     name: 'get_dataset',
-    description: 'Access the uploaded dataset in different formats. Use summary or sample for efficiency, full only when absolutely necessary.',
+    description:
+      'Access the uploaded dataset in different formats. Use summary or sample for efficiency, full only when absolutely necessary.',
     parameters: z.object({
       format: formatSchema.describe(
         'summary: metadata only (most efficient), sample: first 10 rows, full: entire dataset (use sparingly)'
@@ -71,17 +75,22 @@ export function createDatasetTool(dataset: any[]) {
 export function createSampledDatasetTool(dataset: any[], defaultSampleSize: number = 50) {
   return tool({
     name: 'get_sampled_dataset',
-    description: 'Access a representative sample of the dataset with full transparency about sampling method and coverage',
+    description:
+      'Access a representative sample of the dataset with full transparency about sampling method and coverage',
     parameters: z.object({
       sampleSize: z.number().min(10).max(200).describe('Number of rows to sample (default: 50)'),
-      method: z.enum(['stratified', 'random', 'systematic']).describe('Sampling method (default: stratified)')
+      method: z
+        .enum(['stratified', 'random', 'systematic'])
+        .describe('Sampling method (default: stratified)'),
     }),
     execute: async ({ sampleSize = defaultSampleSize, method = 'stratified' }) => {
-      logger.info(`get_sampled_dataset tool called with sampleSize: ${sampleSize}, method: ${method}`);
-      
+      logger.info(
+        `get_sampled_dataset tool called with sampleSize: ${sampleSize}, method: ${method}`
+      );
+
       const sampled = sampleDataset(dataset, sampleSize, method);
-      const samplingPercentage = (sampled.length / dataset.length * 100).toFixed(1);
-      
+      const samplingPercentage = ((sampled.length / dataset.length) * 100).toFixed(1);
+
       return {
         data: sampled,
         totalCount: dataset.length,
@@ -90,7 +99,7 @@ export function createSampledDatasetTool(dataset: any[], defaultSampleSize: numb
         samplingPercentage: `${samplingPercentage}%`,
         note: `This is a ${samplingPercentage}% ${method} sample of the full dataset. Use for pattern analysis but verify precise counts with full dataset if needed.`,
         columns: Object.keys(dataset[0] || {}),
-        confidence: sampled.length >= 50 ? 'high' : sampled.length >= 20 ? 'medium' : 'low'
+        confidence: sampled.length >= 50 ? 'high' : sampled.length >= 20 ? 'medium' : 'low',
       };
     },
   });

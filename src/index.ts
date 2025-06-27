@@ -54,11 +54,11 @@ const limiter = rateLimit({
     success: false,
     error: {
       message: 'Too many requests, please try again later.',
-      code: 429
-    }
+      code: 429,
+    },
   },
   // Skip rate limiting for health check endpoints
-  skip: (req) => req.path === '/health' || req.path === '/api-docs'
+  skip: (req) => req.path === '/health' || req.path === '/api-docs',
 });
 
 app.use(limiter);
@@ -83,7 +83,7 @@ const loadCertificates = () => {
   try {
     const key = fs.readFileSync(keyPath);
     const cert = fs.readFileSync(certPath);
-    
+
     logger.info('SSL certificates loaded successfully');
     return { key, cert };
   } catch (error) {
@@ -111,13 +111,13 @@ const startServer = async () => {
     app.use('*', (req, res) => {
       // Log the attempt but don't expose sensitive data
       logger.warn(`Invalid endpoint accessed: ${req.method} ${req.originalUrl} from ${req.ip}`);
-      
+
       res.status(404).json({
         success: false,
         error: {
           message: 'Endpoint not found',
-          code: 404
-        }
+          code: 404,
+        },
       });
     });
 
@@ -130,7 +130,7 @@ const startServer = async () => {
 
       // Create HTTPS server with error handling to prevent certificate leakage
       const httpsServer = https.createServer(httpsOptions, app);
-      
+
       // Add error handlers to prevent certificate leakage
       httpsServer.on('error', (error) => {
         // Only log error message, not the full error object

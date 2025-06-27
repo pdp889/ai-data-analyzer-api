@@ -63,55 +63,159 @@ export class AnalysisService {
   };
 
   static analyzeWithAgents = async (req: any, records: any[]) => {
+    try {
+      // Clear any previous status
+      await SessionService.clearAgentStatus(req);
 
-    console.log('Running Profiler Agent with full dataset...');
-    const profilerAgent = createProfilerAgent(records);
-    const profilerResult = await run(
-      profilerAgent,
-      'Please perform a comprehensive analysis of the uploaded dataset'
-    );
-    const profile: DatasetProfile = profilerResult.finalOutput as DatasetProfile;
+      console.log('Running Profiler Agent with full dataset...');
+      await SessionService.updateAgentStatus(
+        req,
+        'Profiler Agent',
+        'starting',
+        'Initializing dataset profiling...'
+      );
 
-    console.log('Running Detective Agent with full dataset...');
-    const detectiveAgent = createDetectiveAgent(records, profile);
-    const detectiveResult = await run(
-      detectiveAgent,
-      'Please perform a comprehensive analysis of the uploaded dataset'
-    );
-    const { insights }: { insights: Insight[] } = detectiveResult.finalOutput as InsightAgentResult;
+      const profilerAgent = createProfilerAgent(records);
+      await SessionService.updateAgentStatus(
+        req,
+        'Profiler Agent',
+        'running',
+        'Analyzing dataset structure and statistics...'
+      );
 
-    console.log('Running Storyteller Agent with sampled dataset...');
-    const storytellerAgent = createStorytellerAgent(records, profile, insights);
-    const storytellerResult = await run(
-      storytellerAgent,
-      'Please create a narrative summary based on the analysis results'
-    );
-    const narrative: string = storytellerResult.finalOutput as string;
+      const profilerResult = await run(
+        profilerAgent,
+        'Please perform a comprehensive analysis of the uploaded dataset'
+      );
+      const profile: DatasetProfile = profilerResult.finalOutput as DatasetProfile;
 
-    console.log('Running Additional Context Agent with sampled dataset...');
-    const additionalContextAgent = await createAdditionalContextAgent(
-      records,
-      profile,
-      insights,
-      narrative
-    );
-    const additionalContextResult = await run(
-      additionalContextAgent,
-      'Please find relevant FDA context for this dataset'
-    );
-    const { contexts }: { contexts: AdditionalContext[] } =
-      additionalContextResult.finalOutput as AdditionalContextAgentResult;
+      await SessionService.updateAgentStatus(
+        req,
+        'Profiler Agent',
+        'completed',
+        'Dataset profiling completed successfully'
+      );
 
-    const result: AnalysisResult = {
-      profile: profile,
-      insights: insights,
-      narrative: narrative,
-      additionalContexts: contexts,
-    };
+      console.log('Running Detective Agent with full dataset...');
+      await SessionService.updateAgentStatus(
+        req,
+        'Detective Agent',
+        'starting',
+        'Initializing pattern detection...'
+      );
 
-    console.log('Analysis pipeline completed successfully');
-    SessionService.saveAnalysisState(req, result, records);
+      const detectiveAgent = createDetectiveAgent(records, profile);
+      await SessionService.updateAgentStatus(
+        req,
+        'Detective Agent',
+        'running',
+        'Detecting patterns, correlations, and insights...'
+      );
 
-    return result;
+      const detectiveResult = await run(
+        detectiveAgent,
+        'Please perform a comprehensive analysis of the uploaded dataset'
+      );
+      const { insights }: { insights: Insight[] } =
+        detectiveResult.finalOutput as InsightAgentResult;
+
+      await SessionService.updateAgentStatus(
+        req,
+        'Detective Agent',
+        'completed',
+        'Pattern detection completed successfully'
+      );
+
+      console.log('Running Storyteller Agent with sampled dataset...');
+      await SessionService.updateAgentStatus(
+        req,
+        'Storyteller Agent',
+        'starting',
+        'Initializing narrative generation...'
+      );
+
+      const storytellerAgent = createStorytellerAgent(records, profile, insights);
+      await SessionService.updateAgentStatus(
+        req,
+        'Storyteller Agent',
+        'running',
+        'Generating human-readable narrative...'
+      );
+
+      const storytellerResult = await run(
+        storytellerAgent,
+        'Please create a narrative summary based on the analysis results'
+      );
+      const narrative: string = storytellerResult.finalOutput as string;
+
+      await SessionService.updateAgentStatus(
+        req,
+        'Storyteller Agent',
+        'completed',
+        'Narrative generation completed successfully'
+      );
+
+      console.log('Running Additional Context Agent with sampled dataset...');
+      await SessionService.updateAgentStatus(
+        req,
+        'Additional Context Agent',
+        'starting',
+        'Initializing context research...'
+      );
+
+      const additionalContextAgent = await createAdditionalContextAgent(
+        records,
+        profile,
+        insights,
+        narrative
+      );
+      await SessionService.updateAgentStatus(
+        req,
+        'Additional Context Agent',
+        'running',
+        'Researching relevant FDA context...'
+      );
+
+      const additionalContextResult = await run(
+        additionalContextAgent,
+        'Please find relevant FDA context for this dataset'
+      );
+      const { contexts }: { contexts: AdditionalContext[] } =
+        additionalContextResult.finalOutput as AdditionalContextAgentResult;
+
+      await SessionService.updateAgentStatus(
+        req,
+        'Additional Context Agent',
+        'completed',
+        'Context research completed successfully'
+      );
+
+      const result: AnalysisResult = {
+        profile: profile,
+        insights: insights,
+        narrative: narrative,
+        additionalContexts: contexts,
+      };
+
+      console.log('Analysis pipeline completed successfully');
+      await SessionService.updateAgentStatus(
+        req,
+        'Analysis Pipeline',
+        'completed',
+        'All agents completed successfully'
+      );
+      SessionService.saveAnalysisState(req, result, records);
+
+      return result;
+    } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error occurred';
+      await SessionService.updateAgentStatus(
+        req,
+        'Analysis Pipeline',
+        'error',
+        `Analysis failed: ${errorMessage}`
+      );
+      throw error;
+    }
   };
 }
