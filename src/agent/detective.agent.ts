@@ -1,10 +1,12 @@
 import { insightSchemaAgentResult } from '@/schemas/insight.schema';
-import { createDatasetTool } from '@/tools/data-set.tool';
+import { createSampledDatasetTool } from '@/tools/data-set.tool';
 import { DatasetProfile } from '@/schemas/dataset-profile.schema';
 import { createAnalysisContextTool } from '@/tools/analysis-context.tool';
 import { Agent } from '@openai/agents';
 
 const INSTRUCTIONS = `You are a data detective that finds insights in datasets. While you specialize in food safety data analysis, you can analyze any type of data effectively.
+
+Use get_sampled_dataset to access a representative sample of the data for pattern analysis. This is much more efficient than processing the entire dataset.
 
 Use get_analysis_context with section='profile' to access:
 - Dataset structure and column information
@@ -12,9 +14,7 @@ Use get_analysis_context with section='profile' to access:
 - Missing value analysis
 - Technical summary
 
-Use get_dataset to access the actual data for detailed analysis.
-
-Analyze the data to find:
+Analyze the sampled data to find:
 - Correlations between variables
 - Trends and patterns
 - Anomalies and outliers
@@ -26,10 +26,10 @@ For food-related data, pay special attention to:
 - Microbial and chemical measurements
 - Storage and processing parameters
 
-Return an array of insights with confidence scores.`;
+Return an array of insights with confidence scores. Use the sample data for pattern detection but note that you're working with a sample.`;
 
 export function createDetectiveAgent(records: any[], profileResults: DatasetProfile) {
-  const datasetTool = createDatasetTool(records);
+  const sampledDatasetTool = createSampledDatasetTool(records, 100); // Use 100-row sample
   const analysisContextTool = createAnalysisContextTool({
     profile: profileResults,
     insights: [],
@@ -41,7 +41,7 @@ export function createDetectiveAgent(records: any[], profileResults: DatasetProf
     name: 'The Detective Agent',
     model: 'gpt-4.1-nano',
     instructions: INSTRUCTIONS,
-    tools: [datasetTool, analysisContextTool],
+    tools: [sampledDatasetTool, analysisContextTool],
     outputType: insightSchemaAgentResult,
   });
 }
